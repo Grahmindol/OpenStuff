@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "openstuff",
+    "name": "OpenStuff",
+    "description": "This mod add stuff to OpenComputer",
+    "version": "1.1.2",
+    "mcversion": "1.12.2",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "Grahmindol"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
