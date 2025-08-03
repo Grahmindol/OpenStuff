@@ -28,7 +28,7 @@ public class KeyInputHandler {
             ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
             if (!chestStack.isEmpty()) {
                 // Appelle ta méthode custom avec player et chestStack
-                ((OpenStuffArmorItem)(chestStack.getItem())).onArmorKeyPress(player, chestStack);
+                OpenStuffArmorItem.openTabletGuiFromArmor(player);
             }
         }
     }
