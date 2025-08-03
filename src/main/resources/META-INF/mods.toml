@@ -35,6 +35,6 @@ OpenStuff an addon for OpenComputers
 [[dependencies.openstuff]]
     modId="opencomputers"
     mandatory=true
-    versionRange="[1.8,)"
+    versionRange="(1.8.6,)"
     ordering="NONE"
     side="BOTH"

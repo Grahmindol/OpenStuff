@@ -15,16 +15,16 @@ public class OpenStuffItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, OpenStuffMod.MOD_ID);
 
 
-    public static final RegistryObject<Item> AMETHYST_BOOTS = ITEMS.register("open_boots",
+    public static final RegistryObject<Item> OPEN_BOOTS = ITEMS.register("open_boots",
             () -> new OpenStuffArmorItem(EquipmentSlotType.FEET));
 
-    public static final RegistryObject<Item> AMETHYST_CHESTPLATE = ITEMS.register("open_chestplate",
+    public static final RegistryObject<Item> OPEN_CHESTPLATE = ITEMS.register("open_chestplate",
             () -> new OpenStuffArmorItem(EquipmentSlotType.CHEST));
 
-    public static final RegistryObject<Item> AMETHYST_LEGGINGS = ITEMS.register("open_leggings",
+    public static final RegistryObject<Item> OPEN_LEGGINGS = ITEMS.register("open_leggings",
             () -> new OpenStuffArmorItem(EquipmentSlotType.LEGS));
 
-    public static final RegistryObject<Item> AMETHYST_HELMET = ITEMS.register("open_helmet",
+    public static final RegistryObject<Item> OPEN_HELMET = ITEMS.register("open_helmet",
             () -> new OpenStuffArmorItem(EquipmentSlotType.HEAD));
 
 

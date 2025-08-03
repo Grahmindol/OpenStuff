@@ -21,6 +21,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import static ayral.gml.OpenStuffIMC.registerArmorAssembler;
+
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(OpenStuffMod.MOD_ID)
 public class OpenStuffMod
@@ -63,8 +65,7 @@ public class OpenStuffMod
 
     private void enqueueIMC(final InterModEnqueueEvent event)
     {
-        // some example code to dispatch IMC to another mod
-        InterModComms.sendTo("examplemod", "helloworld", () -> { LOGGER.info("Hello world from the MDK"); return "Hello world";});
+        registerArmorAssembler();
     }
 
     private void processIMC(final InterModProcessEvent event)

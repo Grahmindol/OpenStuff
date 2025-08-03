@@ -11,6 +11,7 @@ import li.cil.oc.common.Tier;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
 import li.cil.oc.common.item.data.TabletData;
+import li.cil.oc.common.item.traits.Chargeable;
 import li.cil.oc.server.machine.luac.LuaStateFactory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.model.BipedModel;
@@ -22,14 +23,18 @@ import net.minecraft.item.DyeableArmorItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
-public class OpenStuffArmorItem extends DyeableArmorItem {
+public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     public int light_color = 0xFFFFFF;
     private ArmorComponent armorComponent = null;
 
@@ -61,6 +66,28 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         }
 
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
+
+        // Recharge de la tablette à partir de la plastron
+        if (tabletStack.getItem() instanceof Chargeable) {
+            Chargeable tabletItem = (Chargeable) tabletStack.getItem();
+            double tabletMax = tabletItem.maxCharge(tabletStack);
+            double tabletCharge = tabletItem.getCharge(tabletStack);
+
+            if (tabletCharge < tabletMax) {
+                double missing = tabletMax - tabletCharge;
+
+                if (!tag.contains("Energy")) {
+                    tabletItem.setCharge(tabletStack, tabletMax); // full charge gratuite
+                } else {
+                    double chestEnergy = tag.getDouble("Energy");
+                    double transfer = Math.min(chestEnergy, missing);
+
+                    tabletItem.setCharge(tabletStack, tabletCharge + transfer);
+                    tag.putDouble("Energy", chestEnergy - transfer); // maj énergie plastron
+                }
+            }
+        }
+
         TabletWrapper tablet = Tablet.get(tabletStack, player);
 
         if (this.armorComponent == null) {
@@ -78,7 +105,38 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
 
         tablet.update(world, player, -1, false);
         tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
+
+        // Uniformisation de l'énergie entre les pièces d'armure OpenStuff
+        Iterator<ItemStack> armor = player.getArmorSlots().iterator();
+
+        List<ItemStack> openStuffPieces = new ArrayList<>();
+        double totalEnergy = 0;
+        double totalMax = 0;
+
+        for (Iterator<ItemStack> it = armor; it.hasNext(); ) {
+            ItemStack piece = it.next();
+            if (piece.getItem() instanceof Chargeable) {
+                Chargeable c = (Chargeable) piece.getItem();
+                double max = c.maxCharge(piece);
+                double charge = c.getCharge(piece);
+                totalEnergy += charge;
+                totalMax += max;
+                openStuffPieces.add(piece);
+            }
+        }
+
+        // Redistribution si au moins 2 pièces
+        if (openStuffPieces.size() > 1 && totalMax > 0) {
+            double uniformRatio = totalEnergy / totalMax;
+            for (ItemStack piece : openStuffPieces) {
+                Chargeable c = (Chargeable) piece.getItem();
+                double max = c.maxCharge(piece);
+                c.setCharge(piece, max * uniformRatio);
+            }
+        }
     }
+
+    // ------------------------ Rendering logic  ------------------------
 
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
@@ -87,7 +145,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         if (armorSlot == EquipmentSlotType.CHEST) {
             color = this.light_color;
         } else {
-            // Autre pièce → on tente de lire la couleur du torse
             ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenStuffArmorItem) {
                 color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
@@ -111,6 +168,8 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         }
         return OpenStuffMod.MOD_ID + ":textures/models/armor/open_armor_layer_1.png";
     }
+
+    // ------------------------ GUI logic  ------------------------
 
     public static void openTabletGuiFromArmor(PlayerEntity player) {
         if (!(player.level.isClientSide)) return;
@@ -155,6 +214,7 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
     }
 
 
+    // ------------------------ Creative fake tablet generator ------------------------
 
     private static ItemStack safeGetStack(String name) {
         ItemStack stack = li.cil.oc.common.init.Items.get(name).createItemStack(1);
@@ -162,7 +222,7 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         return stack;
     }
 
-    public static ItemStack createConfiguredTablet() {
+    private static ItemStack createConfiguredTablet() {
         TabletData data = new TabletData();
 
         data.tier_$eq(Tier.Four());
@@ -197,6 +257,66 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         data.items_$eq(items);
 
         return data.createItemStack();
+    }
+
+    // ------------------------ Chargeable logic------------------------
+
+    @Override
+    public double maxCharge(ItemStack stack) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        return tag.contains("maxEnergy") ? tag.getDouble("maxEnergy") : 10000; // default max
+    }
+
+    @Override
+    public double getCharge(ItemStack stack) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        if (!tag.contains("Energy")) return maxCharge(stack); // créatif = toujours plein
+        return tag.getDouble("Energy");
+    }
+
+    @Override
+    public void setCharge(ItemStack stack, double amount) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        if (!tag.contains("Energy")) return; // créatif = ignorer
+        double max = maxCharge(stack);
+        tag.putDouble("Energy", Math.max(0, Math.min(amount, max)));
+    }
+
+    @Override
+    public boolean canExtract(ItemStack stack) {
+        return true; // créatif = toujours possible
+    }
+
+    @Override
+    public boolean canCharge(ItemStack stack) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        return tag.contains("Energy") && getCharge(stack) < maxCharge(stack);
+    }
+
+    @Override
+    public double charge(ItemStack stack, double amount, boolean simulate) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        if (!tag.contains("Energy")) return 0; // créatif = pas besoin
+        double energy = getCharge(stack);
+        double max = maxCharge(stack);
+        double toAdd = Math.min(amount, max - energy);
+        if (!simulate && toAdd > 0) {
+            setCharge(stack, energy + toAdd);
+        }
+        return toAdd;
+    }
+
+    @Override
+    public boolean showDurabilityBar(ItemStack stack) {
+        CompoundNBT tag = stack.getOrCreateTag();
+        return tag.contains("Energy"); // créatif = pas de barre
+    }
+
+    @Override
+    public double getDurabilityForDisplay(ItemStack stack) {
+        double energy = getCharge(stack);
+        double max = maxCharge(stack);
+        return 1d - energy/max;
     }
 }
 
