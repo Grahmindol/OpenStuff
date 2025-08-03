@@ -1,6 +1,7 @@
 package ayral.gml.item;
 
 import ayral.gml.OpenStuffMod;
+import ayral.gml.integration.ArmorComponent;
 import ayral.gml.model.OpenArmorModel;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
@@ -30,7 +31,7 @@ import java.util.Arrays;
 
 public class OpenStuffArmorItem extends DyeableArmorItem {
     public int light_color = 0xFFFFFF;
-
+    private ArmorComponent armorComponent = null;
 
     public OpenStuffArmorItem(EquipmentSlotType slot) {
         super(OpenStuffArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance));
@@ -62,23 +63,38 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
         TabletWrapper tablet = Tablet.get(tabletStack, player);
 
+        if (this.armorComponent == null) {
+            this.armorComponent = new ArmorComponent(player);
+            tablet.connectItemNode(this.armorComponent.node());
+        }
+
         tablet.connectComponents();
         if (tablet.machine() != null){
-            if (!tablet.machine().isRunning()) tablet.machine().start();
+            if (!tablet.machine().isRunning() && this.isWearingFullSet(player))
+                tablet.machine().start();
+            else if (tablet.machine().isRunning() && !this.isWearingFullSet(player))
+                tablet.machine().stop();
         }
 
         tablet.update(world, player, -1, false);
         tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
     }
 
-
-
-
-    @Nullable
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
-        int color = isWearingFullSet(entityLiving) ? this.light_color : 0;
-        return new OpenArmorModel(1.0F, armorSlot, entityLiving,color);
+        int color = 0;
+
+        if (armorSlot == EquipmentSlotType.CHEST) {
+            color = this.light_color;
+        } else {
+            // Autre pièce → on tente de lire la couleur du torse
+            ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
+            if (chestStack.getItem() instanceof OpenStuffArmorItem) {
+                color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
+            }
+        }
+
+        return new OpenArmorModel(1.0F, armorSlot, entityLiving, color);
     }
 
     @Nullable
@@ -96,9 +112,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         return OpenStuffMod.MOD_ID + ":textures/models/armor/open_armor_layer_1.png";
     }
 
-
-
-
     public static void openTabletGuiFromArmor(PlayerEntity player) {
         if (!(player.level.isClientSide)) return;
 
@@ -114,8 +127,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem {
         // 📦 Récupère l'ordinateur virtuel
         TabletWrapper tablet = Tablet.get(tabletStack, player);
         tablet.connectComponents();
-
-
 
         if (tablet != null) {
             Object[] comps = (Object[]) tablet.components(); // scala.Array<Object>
