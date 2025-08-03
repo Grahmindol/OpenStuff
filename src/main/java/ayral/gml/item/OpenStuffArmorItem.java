@@ -1,13 +1,16 @@
 package ayral.gml.item;
 
+import ayral.gml.NetworkHandler;
 import ayral.gml.OpenStuffMod;
 import ayral.gml.integration.ArmorComponent;
 import ayral.gml.model.OpenArmorModel;
+import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
 import li.cil.oc.api.internal.TextBuffer;
 import li.cil.oc.client.gui.Screen;
 import li.cil.oc.common.Tier;
+import li.cil.oc.common.container.ContainerTypes;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
 import li.cil.oc.common.item.data.TabletData;
@@ -18,6 +21,7 @@ import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.DyeableArmorItem;
 import net.minecraft.item.Item;
@@ -186,8 +190,11 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         // 📦 Récupère l'ordinateur virtuel
         TabletWrapper tablet = Tablet.get(tabletStack, player);
         tablet.connectComponents();
+        if (tablet == null) return;
 
-        if (tablet != null) {
+        if (player.isCrouching()){
+            NetworkHandler.INSTANCE.sendToServer(new OpenTabletGuiPacket());
+        }else{
             Object[] comps = (Object[]) tablet.components(); // scala.Array<Object>
             System.out.println("Composants : " + Arrays.toString(comps));
             for (Object opt : comps) {
