@@ -7,18 +7,16 @@ import ayral.gml.model.OpenArmorModel;
 import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
-import li.cil.oc.api.internal.TextBuffer;
-import li.cil.oc.client.gui.Screen;
 import li.cil.oc.common.Tier;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
 import li.cil.oc.common.item.data.TabletData;
 import li.cil.oc.common.item.traits.Chargeable;
 import li.cil.oc.server.machine.luac.LuaStateFactory;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.DyeableArmorItem;
@@ -26,20 +24,18 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.world.World;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
-    public int light_color = 0xFFFFFF;
-    public boolean is_armor_running = false;
+    static final int DEFAULT_COLOR = 0x00FF00;
     private ArmorComponent armorComponent = null;
 
     public OpenStuffArmorItem(EquipmentSlotType slot) {
-        super(OpenStuffArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance));
+        super(OpenStuffArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance)
+                .fireResistant());
     }
 
     private static boolean isWearingFullSet(LivingEntity entity) {
@@ -52,9 +48,17 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     }
 
     @Override
+    public int getColor(ItemStack stack) {
+        CompoundNBT nbt = stack.getTagElement("display");
+        if (nbt != null && nbt.contains("color", 99)) {
+            return nbt.getInt("color");
+        }
+        return DEFAULT_COLOR;
+    }
+
+    @Override
     public void onArmorTick(ItemStack stack, World world, PlayerEntity player) {
         if (world.isClientSide || slot != EquipmentSlotType.CHEST) return;
-
         CompoundNBT tag = stack.getOrCreateTag();
 
         ensureTablet(tag);
@@ -66,7 +70,7 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
         tablet.connectComponents();
         tablet.update(world, player, -1, false);
-        this.is_armor_running = tablet.machine().isRunning();
+        tag.putBoolean("is_armor_running",tablet.machine().isRunning());
         tag.put("Tablet", tabletStack.save(new CompoundNBT()));
 
 
@@ -75,6 +79,19 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         tag.put("Armor", armorTag);
 
         uniformizeArmorEnergy(player);
+    }
+
+    @Override
+    public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
+        stack.getOrCreateTag().putBoolean("is_armor_running",false);
+        return super.onEntityItemUpdate(stack, entity);
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack,World worldIn,Entity entity,int itemSlot,boolean isSelected) {
+        if (!(entity instanceof PlayerEntity player)) return;
+        if(player.getItemBySlot(((OpenStuffArmorItem) stack.getItem()).slot) == stack) return;
+        stack.getOrCreateTag().putBoolean("is_armor_running",false);
     }
 
     private void ensureTablet(CompoundNBT tag) {
@@ -87,9 +104,8 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     }
 
     private void rechargeTabletFromArmor(CompoundNBT tag, ItemStack tabletStack) {
-        if (!(tabletStack.getItem() instanceof Chargeable)) return;
+        if (!(tabletStack.getItem() instanceof Chargeable tabletItem)) return;
 
-        Chargeable tabletItem = (Chargeable) tabletStack.getItem();
         double max = tabletItem.maxCharge(tabletStack);
         double charge = tabletItem.getCharge(tabletStack);
 
@@ -151,23 +167,21 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
-        int color = 0x202020;
+        int color = this.getColor(itemStack);
 
         if (isWearingFullSet(entityLiving)) {
-            if (armorSlot == EquipmentSlotType.CHEST && this.is_armor_running) {
-                color = this.light_color;
-            } else {
+            if (armorSlot != EquipmentSlotType.CHEST) {
                 ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
-                if (((OpenStuffArmorItem) chestStack.getItem()).is_armor_running ) {
-                    color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
-                    this.is_armor_running = true;
-                }else {
-                    this.is_armor_running = false;
-                }
+                itemStack.getOrCreateTag().putBoolean("is_armor_running",chestStack.getOrCreateTag().getBoolean("is_armor_running"));
+                color = this.getColor(chestStack);
+                this.setColor(itemStack,color);
             }
+        }else{
+            itemStack.getOrCreateTag().putBoolean("is_armor_running",false);
         }
 
-        return new OpenArmorModel(1.0F, armorSlot, entityLiving, color);
+        boolean runing = itemStack.getOrCreateTag().getBoolean("is_armor_running");
+        return new OpenArmorModel(1.0F, armorSlot, entityLiving, color, runing);
     }
 
     @Nullable

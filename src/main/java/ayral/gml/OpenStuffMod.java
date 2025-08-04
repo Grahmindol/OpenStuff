@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import static ayral.gml.OpenStuffIMC.registerArmorAssembler;
+import static ayral.gml.item.OpenStuffItems.ItemColorRegister;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(OpenStuffMod.MOD_ID)
@@ -45,7 +46,7 @@ public class OpenStuffMod
         // Register the processIMC method for modloading
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::processIMC);
         // Register the doClientStuff method for modloading
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onClientSetup);
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
@@ -56,9 +57,10 @@ public class OpenStuffMod
         NetworkHandler.register();
     }
 
-    private void doClientStuff(final FMLClientSetupEvent event) {
+    private void onClientSetup(final FMLClientSetupEvent event) {
         // do something that can only be done on the client
         ClientRegistry.registerKeyBinding(KeyInputHandler.KEY_OPEN_ARMOR);
+        ItemColorRegister(event);
     }
 
     private void enqueueIMC(final InterModEnqueueEvent event)

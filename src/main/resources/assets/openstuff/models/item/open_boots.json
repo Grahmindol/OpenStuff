@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "openstuff:item/open_boots"
+    "layer0": "openstuff:item/open_boots",
+    "layer1": "openstuff:item/open_boots_overlay"
   }
 }

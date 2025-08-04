@@ -21,15 +21,16 @@ public class OpenArmorModel extends BipedModel {
     public final EquipmentSlotType slot ;
     private LivingEntity entity;
     private boolean isOverlay = false;
+    private boolean isRunning = false;
     private int lightColor;
 
 
-    public OpenArmorModel(float modelSize, EquipmentSlotType slotIn, LivingEntity entity, int color){
+    public OpenArmorModel(float modelSize, EquipmentSlotType slotIn, LivingEntity entity, int color, boolean isRunning){
         super(modelSize, 0, 64, 64);
         this.slot = slotIn;
         this.entity = entity;
         this.lightColor = color;
-
+        this.isRunning = isRunning;
 
         // Bras gauche overlay
         this.bipedLeftArmOverlay = new ModelRenderer(this, 48, 48);
@@ -65,6 +66,12 @@ public class OpenArmorModel extends BipedModel {
             red = ((lightColor >>> 16) & 0xFF)/255f;
             green = ((lightColor >>> 8) & 0xFF)/255f;
             blue = ((lightColor >>> 0) & 0xFF)/255f;
+
+            if (!isRunning){
+                red /= 4.0f;
+                green /= 4.0f;
+                blue /= 4.0f;
+            }
         }
 
         super.renderToBuffer(matrixStack,buffer,packedLight,packedOverlay,red,green,blue,alpha);

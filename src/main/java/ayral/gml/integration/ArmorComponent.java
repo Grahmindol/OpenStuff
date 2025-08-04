@@ -53,7 +53,7 @@ public class ArmorComponent extends AbstractManagedEnvironment implements Device
     public Object[] getLightColor(Context context, Arguments args) {
         ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
         if (chestStack.getItem() instanceof OpenStuffArmorItem) {
-            return new Object[]{((OpenStuffArmorItem) chestStack.getItem()).light_color};
+            return new Object[]{((OpenStuffArmorItem) chestStack.getItem()).getColor(chestStack)};
         }
         return new Object[]{null};
     }
@@ -63,7 +63,7 @@ public class ArmorComponent extends AbstractManagedEnvironment implements Device
         int color = args.checkInteger(0);
         ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
         if (chestStack.getItem() instanceof OpenStuffArmorItem) {
-            ((OpenStuffArmorItem) chestStack.getItem()).light_color = color;
+            ((OpenStuffArmorItem) chestStack.getItem()).setColor(chestStack,color);
             return new Object[]{true};
         }
         return new Object[]{false};

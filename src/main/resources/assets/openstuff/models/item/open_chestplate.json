@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "openstuff:item/open_chestplate"
+    "layer0": "openstuff:item/open_chestplate",
+    "layer1": "openstuff:item/open_chestplate_overlay"
   }
 }

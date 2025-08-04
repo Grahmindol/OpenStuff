@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "openstuff:item/open_helmet"
+    "layer0": "openstuff:item/open_helmet",
+    "layer1": "openstuff:item/open_helmet_overlay"
   }
 }

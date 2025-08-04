@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "openstuff:item/open_leggings"
+    "layer0": "openstuff:item/open_leggings",
+    "layer1": "openstuff:item/open_leggings_overlay"
   }
 }
