@@ -21,8 +21,6 @@ public class OpenStuffPacketHandler {
         if (!(tabletStack.getItem() instanceof Tablet)) return;
 
         TabletWrapper tablet = Tablet.get(tabletStack, player);
-        tablet.connectComponents();
-        tablet.machine().stop();
         ContainerTypes.openTabletGui(player, tablet);
     }
 

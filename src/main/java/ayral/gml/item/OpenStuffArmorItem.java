@@ -10,7 +10,6 @@ import li.cil.oc.api.CreativeTab;
 import li.cil.oc.api.internal.TextBuffer;
 import li.cil.oc.client.gui.Screen;
 import li.cil.oc.common.Tier;
-import li.cil.oc.common.container.ContainerTypes;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
 import li.cil.oc.common.item.data.TabletData;
@@ -21,13 +20,11 @@ import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.DyeableArmorItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -40,19 +37,30 @@ import java.util.List;
 
 public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     public int light_color = 0xFFFFFF;
+    public boolean should_running = false;
     private ArmorComponent armorComponent = null;
 
     public OpenStuffArmorItem(EquipmentSlotType slot) {
         super(OpenStuffArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance));
     }
 
-    private boolean isWearingFullSet(LivingEntity entity) {
+    private static boolean isWearingFullSet(LivingEntity entity) {
         for (ItemStack stack : entity.getArmorSlots()) {
             if (!(stack.getItem() instanceof OpenStuffArmorItem)) {
                 return false;
             }
         }
         return true;
+    }
+
+    public static void start_computer(ItemStack stack, PlayerEntity player){
+        if (!(stack.getItem() instanceof OpenStuffArmorItem)) return;
+        ((OpenStuffArmorItem) stack.getItem()).should_running = isWearingFullSet(player);
+    }
+
+    public static void stop_computer(ItemStack stack, PlayerEntity player){
+        if (!(stack.getItem() instanceof OpenStuffArmorItem)) return;
+        ((OpenStuffArmorItem) stack.getItem()).should_running = false;
     }
 
     @Override
@@ -99,14 +107,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
             tablet.connectItemNode(this.armorComponent.node());
         }
 
-        tablet.connectComponents();
-        if (tablet.machine() != null){
-            if (!tablet.machine().isRunning() && this.isWearingFullSet(player))
-                tablet.machine().start();
-            else if (tablet.machine().isRunning() && !this.isWearingFullSet(player))
-                tablet.machine().stop();
-        }
-
         tablet.update(world, player, -1, false);
         tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
 
@@ -138,21 +138,39 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
                 c.setCharge(piece, max * uniformRatio);
             }
         }
+        // tablet logic ----------------------
+
+        if (tablet.machine() != null) {
+            if (!tablet.machine().isRunning() && should_running){
+                tablet.connectComponents();
+                tablet.machine().start();
+            }
+            else if (tablet.machine().isRunning() && !should_running)
+                tablet.machine().stop();
+        }
+        if (!tablet.machine().isRunning()) return;
+        tablet.update(world, player, -1, false);
+        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
     }
 
     // ------------------------ Rendering logic  ------------------------
 
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
-        int color = 0;
+        int color = 0x010101;
 
-        if (armorSlot == EquipmentSlotType.CHEST) {
-            color = this.light_color;
-        } else {
-            ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
-            if (chestStack.getItem() instanceof OpenStuffArmorItem) {
-                color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
+        if (isWearingFullSet(entityLiving)) {
+            if (armorSlot == EquipmentSlotType.CHEST && this.should_running) {
+                color = this.light_color;
+            } else {
+                ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
+                if (((OpenStuffArmorItem) chestStack.getItem()).should_running ) {
+                    color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
+                    this.should_running = true;
+                }
             }
+        }else if (armorSlot == EquipmentSlotType.CHEST){
+            //this.should_running = false;
         }
 
         return new OpenArmorModel(1.0F, armorSlot, entityLiving, color);
@@ -193,10 +211,11 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         if (tablet == null) return;
 
         if (player.isCrouching()){
+            stop_computer(chestStack,player);
             NetworkHandler.INSTANCE.sendToServer(new OpenTabletGuiPacket());
         }else{
-            Object[] comps = (Object[]) tablet.components(); // scala.Array<Object>
-            System.out.println("Composants : " + Arrays.toString(comps));
+            start_computer(chestStack,player);
+            Object[] comps = (Object[]) tablet.components();
             for (Object opt : comps) {
                 if (opt instanceof scala.Option) {
                     scala.Option<?> some = (scala.Option<?>) opt;
