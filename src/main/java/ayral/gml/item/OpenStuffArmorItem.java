@@ -31,13 +31,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     public int light_color = 0xFFFFFF;
-    public boolean should_running = false;
+    public boolean is_armor_running = false;
     private ArmorComponent armorComponent = null;
 
     public OpenStuffArmorItem(EquipmentSlotType slot) {
@@ -53,16 +51,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         return true;
     }
 
-    public static void start_computer(ItemStack stack, PlayerEntity player){
-        if (!(stack.getItem() instanceof OpenStuffArmorItem)) return;
-        ((OpenStuffArmorItem) stack.getItem()).should_running = isWearingFullSet(player);
-    }
-
-    public static void stop_computer(ItemStack stack, PlayerEntity player){
-        if (!(stack.getItem() instanceof OpenStuffArmorItem)) return;
-        ((OpenStuffArmorItem) stack.getItem()).should_running = false;
-    }
-
     @Override
     public void onArmorTick(ItemStack stack, World world, PlayerEntity player) {
         if (world.isClientSide || slot != EquipmentSlotType.CHEST) return;
@@ -74,15 +62,19 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         rechargeTabletFromArmor(tag, tabletStack);
 
         TabletWrapper tablet = Tablet.get(tabletStack, player);
-        initializeArmorComponent(tablet, player);
+        initializeArmorComponent(tag, tablet, player);
 
+        tablet.connectComponents();
         tablet.update(world, player, -1, false);
-        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // 💾 mise à jour tablette
+        this.is_armor_running = tablet.machine().isRunning();
+        tag.put("Tablet", tabletStack.save(new CompoundNBT()));
+
+
+        CompoundNBT armorTag = new CompoundNBT();
+        this.armorComponent.node().saveData(armorTag);
+        tag.put("Armor", armorTag);
 
         uniformizeArmorEnergy(player);
-        handleTabletRunning(tablet, world, player);
-
-        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // 💾 mise à jour tablette bis
     }
 
     private void ensureTablet(CompoundNBT tag) {
@@ -116,9 +108,14 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         }
     }
 
-    private void initializeArmorComponent(TabletWrapper tablet, PlayerEntity player) {
+    private void initializeArmorComponent(CompoundNBT tag, TabletWrapper tablet, PlayerEntity player) {
         if (this.armorComponent == null)
             this.armorComponent = new ArmorComponent(player);
+
+        if (tag.contains("Armor")) {
+            CompoundNBT armorTag = tag.getCompound("Armor");
+            this.armorComponent.node().loadData(armorTag);
+        }
 
         if (!this.armorComponent.node().canBeReachedFrom(tablet.node()))
             tablet.connectItemNode(this.armorComponent.node());
@@ -150,40 +147,24 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         }
     }
 
-    private void handleTabletRunning(TabletWrapper tablet, World world, PlayerEntity player) {
-        if (tablet.machine() != null) {
-            if (!tablet.machine().isRunning() && should_running) {
-                tablet.connectComponents();
-                tablet.machine().start();
-            } else if (tablet.machine().isRunning() && !should_running) {
-                tablet.machine().stop();
-            }
-
-            if (tablet.machine().isRunning()) {
-                tablet.update(world, player, -1, false);
-            }
-        }
-    }
-
-
     // ------------------------ Rendering logic  ------------------------
 
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
-        int color = 0x010101;
+        int color = 0x202020;
 
         if (isWearingFullSet(entityLiving)) {
-            if (armorSlot == EquipmentSlotType.CHEST && this.should_running) {
+            if (armorSlot == EquipmentSlotType.CHEST && this.is_armor_running) {
                 color = this.light_color;
             } else {
                 ItemStack chestStack = entityLiving.getItemBySlot(EquipmentSlotType.CHEST);
-                if (((OpenStuffArmorItem) chestStack.getItem()).should_running ) {
+                if (((OpenStuffArmorItem) chestStack.getItem()).is_armor_running ) {
                     color = ((OpenStuffArmorItem) chestStack.getItem()).light_color;
-                    this.should_running = true;
+                    this.is_armor_running = true;
+                }else {
+                    this.is_armor_running = false;
                 }
             }
-        }else if (armorSlot == EquipmentSlotType.CHEST){
-            //this.should_running = false;
         }
 
         return new OpenArmorModel(1.0F, armorSlot, entityLiving, color);
@@ -212,44 +193,24 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
         if (chestStack.isEmpty() || !(chestStack.getItem() instanceof OpenStuffArmorItem)) return;
 
+        NetworkHandler.INSTANCE.sendToServer(new OpenTabletGuiPacket());
+
         CompoundNBT tag = chestStack.getOrCreateTag();
         if (!tag.contains("Tablet")) return;
-
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
         if (!(tabletStack.getItem() instanceof Tablet)) return;
 
-        // 📦 Récupère l'ordinateur virtuel
         TabletWrapper tablet = Tablet.get(tabletStack, player);
+
         tablet.connectComponents();
-        if (tablet == null) return;
+        tablet.update(player.level, player, -1, false); // -1 ticks, not from NBT
 
-        if (player.isCrouching()){
-            stop_computer(chestStack,player);
-            NetworkHandler.INSTANCE.sendToServer(new OpenTabletGuiPacket());
-        }else{
-            start_computer(chestStack,player);
-            Object[] comps = (Object[]) tablet.components();
-            for (Object opt : comps) {
-                if (opt instanceof scala.Option) {
-                    scala.Option<?> some = (scala.Option<?>) opt;
-                    if (some.isDefined()) {
-                        Object value = some.get();
-                        if (value instanceof TextBuffer) {
-                            TextBuffer buffer = (TextBuffer) value;
-                            // 👍 Appelle le GUI ici
-                            showGui(buffer);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
+        tabletStack.getItem().releaseUsing(tabletStack,player.level,player,72000);
 
-
-    @OnlyIn(Dist.CLIENT)
-    private static void showGui(TextBuffer buffer) {
-        Minecraft.getInstance().pushGuiLayer(new Screen(buffer, true, () -> true, buffer::isRenderingEnabled));
+        tag.put("Tablet", tabletStack.save(new CompoundNBT()));
+        CompoundNBT armorTag = new CompoundNBT();
+        ((OpenStuffArmorItem) chestStack.getItem()).armorComponent.node().saveData(armorTag);
+        chestStack.getOrCreateTag().put("Armor", armorTag);
     }
 
 
