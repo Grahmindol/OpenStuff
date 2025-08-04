@@ -65,71 +65,81 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
     @Override
     public void onArmorTick(ItemStack stack, World world, PlayerEntity player) {
-        if (world.isClientSide) return;
-        if (slot != EquipmentSlotType.CHEST) return;
+        if (world.isClientSide || slot != EquipmentSlotType.CHEST) return;
 
         CompoundNBT tag = stack.getOrCreateTag();
+
+        ensureTablet(tag);
+        ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
+        rechargeTabletFromArmor(tag, tabletStack);
+
+        TabletWrapper tablet = Tablet.get(tabletStack, player);
+        initializeArmorComponent(tablet, player);
+
+        tablet.update(world, player, -1, false);
+        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // 💾 mise à jour tablette
+
+        uniformizeArmorEnergy(player);
+        handleTabletRunning(tablet, world, player);
+
+        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // 💾 mise à jour tablette bis
+    }
+
+    private void ensureTablet(CompoundNBT tag) {
         if (!tag.contains("Tablet")) {
             ItemStack tabletStack = createConfiguredTablet();
             CompoundNBT tabletTag = new CompoundNBT();
             tabletStack.save(tabletTag);
             tag.put("Tablet", tabletTag);
-            stack.setTag(tag); // 🧠 obligatoire pour que les modifs soient prises
         }
+    }
 
-        ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
+    private void rechargeTabletFromArmor(CompoundNBT tag, ItemStack tabletStack) {
+        if (!(tabletStack.getItem() instanceof Chargeable)) return;
 
-        // Recharge de la tablette à partir de la plastron
-        if (tabletStack.getItem() instanceof Chargeable) {
-            Chargeable tabletItem = (Chargeable) tabletStack.getItem();
-            double tabletMax = tabletItem.maxCharge(tabletStack);
-            double tabletCharge = tabletItem.getCharge(tabletStack);
+        Chargeable tabletItem = (Chargeable) tabletStack.getItem();
+        double max = tabletItem.maxCharge(tabletStack);
+        double charge = tabletItem.getCharge(tabletStack);
 
-            if (tabletCharge < tabletMax) {
-                double missing = tabletMax - tabletCharge;
+        if (charge < max) {
+            double missing = max - charge;
 
-                if (!tag.contains("Energy")) {
-                    tabletItem.setCharge(tabletStack, tabletMax); // full charge gratuite
-                } else {
-                    double chestEnergy = tag.getDouble("Energy");
-                    double transfer = Math.min(chestEnergy, missing);
+            if (!tag.contains("Energy")) {
+                tabletItem.setCharge(tabletStack, max); // 💡 charge créative
+            } else {
+                double chestEnergy = tag.getDouble("Energy");
+                double transfer = Math.min(chestEnergy, missing);
 
-                    tabletItem.setCharge(tabletStack, tabletCharge + transfer);
-                    tag.putDouble("Energy", chestEnergy - transfer); // maj énergie plastron
-                }
+                tabletItem.setCharge(tabletStack, charge + transfer);
+                tag.putDouble("Energy", chestEnergy - transfer);
             }
         }
+    }
 
-        TabletWrapper tablet = Tablet.get(tabletStack, player);
-
-        if (this.armorComponent == null) {
+    private void initializeArmorComponent(TabletWrapper tablet, PlayerEntity player) {
+        if (this.armorComponent == null)
             this.armorComponent = new ArmorComponent(player);
+
+        if (!this.armorComponent.node().canBeReachedFrom(tablet.node()))
             tablet.connectItemNode(this.armorComponent.node());
-        }
+    }
 
-        tablet.update(world, player, -1, false);
-        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
-
-        // Uniformisation de l'énergie entre les pièces d'armure OpenStuff
-        Iterator<ItemStack> armor = player.getArmorSlots().iterator();
-
+    private void uniformizeArmorEnergy(PlayerEntity player) {
         List<ItemStack> openStuffPieces = new ArrayList<>();
         double totalEnergy = 0;
         double totalMax = 0;
 
-        for (Iterator<ItemStack> it = armor; it.hasNext(); ) {
-            ItemStack piece = it.next();
+        for (ItemStack piece : player.getArmorSlots()) {
             if (piece.getItem() instanceof Chargeable) {
                 Chargeable c = (Chargeable) piece.getItem();
                 double max = c.maxCharge(piece);
                 double charge = c.getCharge(piece);
-                totalEnergy += charge;
                 totalMax += max;
+                totalEnergy += charge;
                 openStuffPieces.add(piece);
             }
         }
 
-        // Redistribution si au moins 2 pièces
         if (openStuffPieces.size() > 1 && totalMax > 0) {
             double uniformRatio = totalEnergy / totalMax;
             for (ItemStack piece : openStuffPieces) {
@@ -138,20 +148,23 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
                 c.setCharge(piece, max * uniformRatio);
             }
         }
-        // tablet logic ----------------------
+    }
 
+    private void handleTabletRunning(TabletWrapper tablet, World world, PlayerEntity player) {
         if (tablet.machine() != null) {
-            if (!tablet.machine().isRunning() && should_running){
+            if (!tablet.machine().isRunning() && should_running) {
                 tablet.connectComponents();
                 tablet.machine().start();
-            }
-            else if (tablet.machine().isRunning() && !should_running)
+            } else if (tablet.machine().isRunning() && !should_running) {
                 tablet.machine().stop();
+            }
+
+            if (tablet.machine().isRunning()) {
+                tablet.update(world, player, -1, false);
+            }
         }
-        if (!tablet.machine().isRunning()) return;
-        tablet.update(world, player, -1, false);
-        tag.put("Tablet", tabletStack.save(new CompoundNBT())); // maj après update
     }
+
 
     // ------------------------ Rendering logic  ------------------------
 
