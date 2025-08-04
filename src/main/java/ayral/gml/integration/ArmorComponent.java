@@ -3,6 +3,7 @@ package ayral.gml.integration;
 import ayral.gml.item.OpenStuffArmorItem;
 import li.cil.oc.Constants;
 import li.cil.oc.Settings;
+import li.cil.oc.api.Nanomachines;
 import li.cil.oc.api.Network;
 import li.cil.oc.api.driver.DeviceInfo;
 import li.cil.oc.api.machine.Arguments;
@@ -69,4 +70,8 @@ public class ArmorComponent extends AbstractManagedEnvironment implements Device
         return new Object[]{false};
     }
 
+    @Callback(doc = "function():boolean -- Return whether the player has nanomachines.")
+    public Object[] hasNanomachines(Context context, Arguments args) {
+        return new Object[]{Nanomachines.hasController(player)};
+    }
 }

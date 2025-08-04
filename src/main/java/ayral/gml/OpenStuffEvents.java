@@ -8,6 +8,7 @@ import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -40,6 +41,27 @@ public class OpenStuffEvents {
             ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
             TabletWrapper tablet = Tablet.get(tabletStack, player);
             tablet.machine().stop();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerHurt(LivingHurtEvent event) {
+        if (!(event.getEntityLiving() instanceof PlayerEntity)) return;
+        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+
+        ItemStack chest = player.getItemBySlot(EquipmentSlotType.CHEST);
+        if (!(chest.getItem() instanceof OpenStuffArmorItem)) return;
+
+        CompoundNBT tag = chest.getOrCreateTag();
+        if (!tag.contains("Tablet")) return;
+
+        ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
+        TabletWrapper tablet = Tablet.get(tabletStack, player);
+
+        String addr = ((OpenStuffArmorItem) chest.getItem()).getArmorComponentAddress();
+
+        if (tablet != null && tablet.machine() != null) {
+            tablet.machine().signal("armor_hurt",addr, event.getSource().getMsgId());
         }
     }
 }

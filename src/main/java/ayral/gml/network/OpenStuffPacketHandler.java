@@ -20,11 +20,7 @@ public class OpenStuffPacketHandler {
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
         if (!(tabletStack.getItem() instanceof Tablet)) return;
 
-        System.out.println(player.level.isClientSide);
         tabletStack.getItem().releaseUsing(tabletStack, player.level, player, 72000);
-
-        //TabletWrapper tablet = Tablet.get(tabletStack, player);
-        //ContainerTypes.openTabletGui(player, tablet);
     }
 
 }

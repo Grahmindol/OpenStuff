@@ -38,6 +38,11 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
                 .fireResistant());
     }
 
+    public String getArmorComponentAddress(){
+        if (this.armorComponent == null)return null;
+        return this.armorComponent.node().address();
+    }
+
     private static boolean isWearingFullSet(LivingEntity entity) {
         for (ItemStack stack : entity.getArmorSlots()) {
             if (!(stack.getItem() instanceof OpenStuffArmorItem)) {
@@ -89,7 +94,8 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
     @Override
     public void inventoryTick(ItemStack stack,World worldIn,Entity entity,int itemSlot,boolean isSelected) {
-        if (!(entity instanceof PlayerEntity player)) return;
+        if (!(entity instanceof PlayerEntity)) return;
+        PlayerEntity player = (PlayerEntity) entity;
         if(player.getItemBySlot(((OpenStuffArmorItem) stack.getItem()).slot) == stack) return;
         stack.getOrCreateTag().putBoolean("is_armor_running",false);
     }
@@ -104,8 +110,9 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
     }
 
     private void rechargeTabletFromArmor(CompoundNBT tag, ItemStack tabletStack) {
-        if (!(tabletStack.getItem() instanceof Chargeable tabletItem)) return;
+        if (!(tabletStack.getItem() instanceof Chargeable)) return;
 
+        Chargeable tabletItem = (Chargeable) tabletStack.getItem();
         double max = tabletItem.maxCharge(tabletStack);
         double charge = tabletItem.getCharge(tabletStack);
 
