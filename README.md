@@ -38,7 +38,7 @@ print(string.format("Current light: %06X", armor.getLight()))
 ## 🧪 Compilation
 
 ```bash
-git clone https://github.com/TON_PSEUDO/OpenStuff.git
+git clone https://github.com/Grahmindol/OpenStuff.git
 cd OpenStuff
 ./gradlew build
 ```
