@@ -3,7 +3,6 @@ package ayral.gml.item;
 import ayral.gml.OpenStuffMod;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.IArmorMaterial;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.LazyValue;
@@ -14,7 +13,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.util.function.Supplier;
 
-public enum OpenStuffArmorMaterial implements IArmorMaterial {
+public enum OpenArmorMaterial implements IArmorMaterial {
 
     OPEN_ARMOR_MATERIAL("open_armor", 7,
             new int[] {3, 8, 6, 3}, // défense (helmet, chestplate, leggings, boots)
@@ -34,9 +33,9 @@ public enum OpenStuffArmorMaterial implements IArmorMaterial {
     private final float knockbackResistance;
     private final LazyValue<Ingredient> repairMaterial;
 
-    private OpenStuffArmorMaterial(String name, int maxDamageFactor, int[] damageReductionAmountArray, int enchantability,
-                             SoundEvent soundEvent, float toughness, float knockbackResistance,
-                             Supplier<Ingredient> repairMaterial) {
+    private OpenArmorMaterial(String name, int maxDamageFactor, int[] damageReductionAmountArray, int enchantability,
+                              SoundEvent soundEvent, float toughness, float knockbackResistance,
+                              Supplier<Ingredient> repairMaterial) {
         this.name = name;
         this.maxDamageFactor = maxDamageFactor;
         this.damageReductionAmountArray = damageReductionAmountArray;

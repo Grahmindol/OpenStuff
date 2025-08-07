@@ -1,16 +1,11 @@
 package ayral.gml;
 
 import ayral.gml.integration.ArmorHost;
-import li.cil.oc.api.driver.item.Slot;
 import li.cil.oc.common.Tier;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraftforge.fml.InterModComms;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Arrays;
 
-import static li.cil.oc.api.IMC.registerAssemblerFilter;
 import static li.cil.oc.api.IMC.registerAssemblerTemplate;
 
 public class OpenStuffIMC {

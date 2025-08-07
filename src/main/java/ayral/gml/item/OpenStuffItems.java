@@ -4,7 +4,6 @@ import ayral.gml.OpenStuffMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.color.ItemColors;
 import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.DyeableArmorItem;
 import net.minecraft.item.Item;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.RegistryObject;
@@ -17,16 +16,16 @@ public class OpenStuffItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, OpenStuffMod.MOD_ID);
 
     public static final RegistryObject<Item> OPEN_HELMET = ITEMS.register("open_helmet",
-            () -> new OpenStuffArmorItem(EquipmentSlotType.HEAD));
+            () -> new OpenArmorItem(EquipmentSlotType.HEAD));
 
     public static final RegistryObject<Item> OPEN_CHESTPLATE = ITEMS.register("open_chestplate",
-            () -> new OpenStuffArmorItem(EquipmentSlotType.CHEST));
+            () -> new OpenArmorItem(EquipmentSlotType.CHEST));
 
     public static final RegistryObject<Item> OPEN_LEGGINGS = ITEMS.register("open_leggings",
-            () -> new OpenStuffArmorItem(EquipmentSlotType.LEGS));
+            () -> new OpenArmorItem(EquipmentSlotType.LEGS));
 
     public static final RegistryObject<Item> OPEN_BOOTS = ITEMS.register("open_boots",
-            () -> new OpenStuffArmorItem(EquipmentSlotType.FEET));
+            () -> new OpenArmorItem(EquipmentSlotType.FEET));
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
@@ -37,8 +36,8 @@ public class OpenStuffItems {
             ItemColors itemColors = Minecraft.getInstance().getItemColors();
 
             itemColors.register((stack, layer) -> {
-                        if (layer == 0 && stack.getItem() instanceof OpenStuffArmorItem) {
-                            OpenStuffArmorItem armor = (OpenStuffArmorItem) stack.getItem();
+                        if (layer == 0 && stack.getItem() instanceof OpenArmorItem) {
+                            OpenArmorItem armor = (OpenArmorItem) stack.getItem();
                             int color = armor.getColor(stack);
                             if (!stack.getOrCreateTag().getBoolean("is_armor_running")) {
                                 int red = ((color >>> 16) & 0xFF) >> 2;

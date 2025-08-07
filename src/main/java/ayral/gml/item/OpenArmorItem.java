@@ -3,10 +3,14 @@ package ayral.gml.item;
 import ayral.gml.NetworkHandler;
 import ayral.gml.OpenStuffMod;
 import ayral.gml.integration.ArmorComponent;
+import ayral.gml.integration.ArmorHost;
 import ayral.gml.model.OpenArmorModel;
 import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
+import li.cil.oc.api.Driver;
+import li.cil.oc.api.network.EnvironmentHost;
+import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.common.Tier;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
@@ -18,23 +22,27 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.DyeableArmorItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.INBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants;
+import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
+public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
     static final int DEFAULT_COLOR = 0x00FF00;
     private ArmorComponent armorComponent = null;
+    private List<Pair<ItemStack, ManagedEnvironment>> dynamicComponents = null;
 
-    public OpenStuffArmorItem(EquipmentSlotType slot) {
-        super(OpenStuffArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance)
+    public OpenArmorItem(EquipmentSlotType slot) {
+        super(OpenArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance)
                 .fireResistant());
     }
 
@@ -43,23 +51,20 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         return this.armorComponent.node().address();
     }
 
-    private static boolean isWearingFullSet(LivingEntity entity) {
+    public static boolean isWearingFullSet(LivingEntity entity) {
         for (ItemStack stack : entity.getArmorSlots()) {
-            if (!(stack.getItem() instanceof OpenStuffArmorItem)) {
+            if (!(stack.getItem() instanceof OpenArmorItem)) {
                 return false;
             }
         }
         return true;
     }
 
-    @Override
-    public int getColor(ItemStack stack) {
-        CompoundNBT nbt = stack.getTagElement("display");
-        if (nbt != null && nbt.contains("color", 99)) {
-            return nbt.getInt("color");
-        }
-        return DEFAULT_COLOR;
+    public static boolean isRunning(ItemStack itemStack){
+        return itemStack.getOrCreateTag().getBoolean("is_armor_running");
     }
+
+    // ------------------------ Armor Update  ---------------------------
 
     @Override
     public void onArmorTick(ItemStack stack, World world, PlayerEntity player) {
@@ -71,7 +76,7 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         rechargeTabletFromArmor(tag, tabletStack);
 
         TabletWrapper tablet = Tablet.get(tabletStack, player);
-        initializeArmorComponent(tag, tablet, player);
+        loadArmorComponent(tag, tablet, player);
 
         tablet.connectComponents();
         tablet.update(world, player, -1, false);
@@ -79,28 +84,11 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         tag.put("Tablet", tabletStack.save(new CompoundNBT()));
 
 
-        CompoundNBT armorTag = new CompoundNBT();
-        this.armorComponent.node().saveData(armorTag);
-        tag.put("Armor", armorTag);
-
+        saveArmorComponent(tag);
         uniformizeArmorEnergy(player);
     }
 
-    @Override
-    public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
-        stack.getOrCreateTag().putBoolean("is_armor_running",false);
-        return super.onEntityItemUpdate(stack, entity);
-    }
-
-    @Override
-    public void inventoryTick(ItemStack stack,World worldIn,Entity entity,int itemSlot,boolean isSelected) {
-        if (!(entity instanceof PlayerEntity)) return;
-        PlayerEntity player = (PlayerEntity) entity;
-        if(player.getItemBySlot(((OpenStuffArmorItem) stack.getItem()).slot) == stack) return;
-        stack.getOrCreateTag().putBoolean("is_armor_running",false);
-    }
-
-    private void ensureTablet(CompoundNBT tag) {
+    public static void ensureTablet(CompoundNBT tag) {
         if (!tag.contains("Tablet")) {
             ItemStack tabletStack = createConfiguredTablet();
             CompoundNBT tabletTag = new CompoundNBT();
@@ -131,9 +119,28 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         }
     }
 
-    private void initializeArmorComponent(CompoundNBT tag, TabletWrapper tablet, PlayerEntity player) {
-        if (this.armorComponent == null)
-            this.armorComponent = new ArmorComponent(player);
+    private void loadArmorComponent(CompoundNBT tag, TabletWrapper tablet, PlayerEntity player) {
+        ArmorHost host = new ArmorHost(player);
+        if (this.armorComponent == null){
+            this.armorComponent =new ArmorComponent(host);
+        }
+        if (dynamicComponents == null) {
+            dynamicComponents = new ArrayList<>();
+            if (tag.contains("components", Constants.NBT.TAG_LIST)) {
+                ListNBT list = tag.getList("components", Constants.NBT.TAG_COMPOUND);
+
+                for (INBT raw : list) {
+                    if (!(raw instanceof CompoundNBT)) continue;
+
+                    ItemStack stack = ItemStack.of((CompoundNBT) raw);
+                    ManagedEnvironment env = Driver.driverFor(stack).createEnvironment(stack, host);
+
+                    if (env != null) {
+                        dynamicComponents.add(Pair.of(stack, env));
+                    }
+                }
+            }
+        }
 
         if (tag.contains("Armor")) {
             CompoundNBT armorTag = tag.getCompound("Armor");
@@ -142,7 +149,20 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
         if (!this.armorComponent.node().canBeReachedFrom(tablet.node()))
             tablet.connectItemNode(this.armorComponent.node());
+
+        for (Pair<ItemStack, ManagedEnvironment> pair : dynamicComponents) {
+            if (!pair.getRight().node().canBeReachedFrom(tablet.node()))
+                tablet.connectItemNode(pair.getRight().node());
+        }
     }
+
+    private void saveArmorComponent(CompoundNBT tag) {
+        CompoundNBT armorTag = new CompoundNBT();
+        this.armorComponent.node().saveData(armorTag);
+        tag.put("Armor", armorTag);
+    }
+
+
 
     private void uniformizeArmorEnergy(PlayerEntity player) {
         List<ItemStack> openStuffPieces = new ArrayList<>();
@@ -170,7 +190,32 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         }
     }
 
+    // ------------------------ Disable Armor when not used -------------
+
+    @Override
+    public boolean onEntityItemUpdate(ItemStack stack, ItemEntity entity) {
+        stack.getOrCreateTag().putBoolean("is_armor_running",false);
+        return super.onEntityItemUpdate(stack, entity);
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack,World worldIn,Entity entity,int itemSlot,boolean isSelected) {
+        if (!(entity instanceof PlayerEntity)) return;
+        PlayerEntity player = (PlayerEntity) entity;
+        if(player.getItemBySlot(((OpenArmorItem) stack.getItem()).slot) == stack) return;
+        stack.getOrCreateTag().putBoolean("is_armor_running",false);
+    }
+
     // ------------------------ Rendering logic  ------------------------
+
+    @Override
+    public int getColor(ItemStack stack) {
+        CompoundNBT nbt = stack.getTagElement("display");
+        if (nbt != null && nbt.contains("color", 99)) {
+            return nbt.getInt("color");
+        }
+        return DEFAULT_COLOR;
+    }
 
     @Override
     public BipedModel getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, BipedModel _default) {
@@ -187,7 +232,7 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
             itemStack.getOrCreateTag().putBoolean("is_armor_running",false);
         }
 
-        boolean runing = itemStack.getOrCreateTag().getBoolean("is_armor_running");
+        boolean runing = isRunning(itemStack);
         return new OpenArmorModel(1.0F, armorSlot, entityLiving, color, runing);
     }
 
@@ -206,13 +251,46 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         return OpenStuffMod.MOD_ID + ":textures/models/armor/open_armor_layer_1.png";
     }
 
+    // ------------------------ Fly logic -------------------------------
+
+    @Override
+    public boolean canElytraFly(ItemStack stack, LivingEntity entity) {
+        return isFlyingEnable(stack) && isRunning(stack);
+    }
+
+    @Override
+    public boolean elytraFlightTick(ItemStack stack, LivingEntity entity, int flightTicks) {
+        if (entity.isCrouching()) {
+            FireworkRocketEntity rocket = new FireworkRocketEntity(entity.level, stack, entity);
+            rocket.tick();
+        }
+        return true;
+    }
+
+    public boolean setFlightEnabled(ItemStack stack, boolean b) {
+        CompoundNBT root = stack.getOrCreateTag();
+        CompoundNBT feature = root.getCompound("feature");
+        feature.putBoolean("flying", b);
+        root.put("feature", feature);
+        stack.setTag(root);
+        return true;
+    }
+
+    public boolean isFlyingEnable(ItemStack stack) {
+        CompoundNBT nbt = stack.getTagElement("feature");
+        if (nbt != null) {
+            return nbt.getBoolean("flying");
+        }
+        return false;
+    }
+
     // ------------------------ GUI logic  ------------------------
 
     public static void openTabletGuiFromArmor(PlayerEntity player) {
         if (!(player.level.isClientSide)) return;
 
         ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
-        if (chestStack.isEmpty() || !(chestStack.getItem() instanceof OpenStuffArmorItem)) return;
+        if (chestStack.isEmpty() || !(chestStack.getItem() instanceof OpenArmorItem)) return;
 
         NetworkHandler.INSTANCE.sendToServer(new OpenTabletGuiPacket());
 
@@ -230,10 +308,9 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
 
         tag.put("Tablet", tabletStack.save(new CompoundNBT()));
         CompoundNBT armorTag = new CompoundNBT();
-        ((OpenStuffArmorItem) chestStack.getItem()).armorComponent.node().saveData(armorTag);
+        ((OpenArmorItem) chestStack.getItem()).armorComponent.node().saveData(armorTag);
         chestStack.getOrCreateTag().put("Armor", armorTag);
     }
-
 
     // ------------------------ Creative fake tablet generator ------------------------
 
@@ -339,5 +416,6 @@ public class OpenStuffArmorItem extends DyeableArmorItem implements Chargeable {
         double max = maxCharge(stack);
         return 1d - energy/max;
     }
+
 }
 

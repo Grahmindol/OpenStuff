@@ -1,6 +1,6 @@
 package ayral.gml;
 
-import ayral.gml.item.OpenStuffArmorItem;
+import ayral.gml.item.OpenArmorItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.PlayerEntity;
@@ -28,7 +28,7 @@ public class KeyInputHandler {
             ItemStack chestStack = player.getItemBySlot(EquipmentSlotType.CHEST);
             if (!chestStack.isEmpty()) {
                 // Appelle ta méthode custom avec player et chestStack
-                OpenStuffArmorItem.openTabletGuiFromArmor(player);
+                OpenArmorItem.openTabletGuiFromArmor(player);
             }
         }
     }

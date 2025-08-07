@@ -1,8 +1,10 @@
 package ayral.gml;
 
-import ayral.gml.item.OpenStuffArmorItem;
+import ayral.gml.integration.ArmorStandDriver;
+import ayral.gml.item.OpenArmorItem;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
+import net.minecraft.entity.item.ArmorStandEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
@@ -17,16 +19,20 @@ public class OpenStuffEvents {
 
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        if ((event.getEntityLiving() instanceof ArmorStandEntity)) {
+            ArmorStandDriver.updateNeighbors((ArmorStandEntity) event.getEntityLiving());
+            return;
+        }
+        ItemStack oldItem = event.getFrom();
+        ItemStack newItem = event.getTo();
+        if (!(oldItem.getItem() instanceof OpenArmorItem)  || oldItem.sameItem(newItem)) return;
+        oldItem.getOrCreateTag().putBoolean("is_armor_running", false);
+
         if (!(event.getEntityLiving() instanceof PlayerEntity)) return;
         PlayerEntity player = (PlayerEntity) event.getEntityLiving();
 
-        ItemStack oldItem = event.getFrom();
-        ItemStack newItem = event.getTo();
-        if (!(oldItem.getItem() instanceof OpenStuffArmorItem)  || oldItem.sameItem(newItem)) return;
-        oldItem.getOrCreateTag().putBoolean("is_armor_running", false);
-
         ItemStack chestItem = player.getItemBySlot(EquipmentSlotType.CHEST);
-        if ((chestItem.getItem() instanceof OpenStuffArmorItem)) {
+        if ((chestItem.getItem() instanceof OpenArmorItem)) {
             CompoundNBT tag = chestItem.getOrCreateTag();
             tag.putBoolean("is_armor_running", false);
             if (!tag.contains("Tablet")) return;
@@ -35,7 +41,7 @@ public class OpenStuffEvents {
             tablet.machine().stop();
         }
 
-        if (((OpenStuffArmorItem) oldItem.getItem()).getSlot() == EquipmentSlotType.CHEST){
+        if (((OpenArmorItem) oldItem.getItem()).getSlot() == EquipmentSlotType.CHEST){
             CompoundNBT tag = oldItem.getOrCreateTag();
             if (!tag.contains("Tablet")) return;
             ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
@@ -50,7 +56,7 @@ public class OpenStuffEvents {
         PlayerEntity player = (PlayerEntity) event.getEntityLiving();
 
         ItemStack chest = player.getItemBySlot(EquipmentSlotType.CHEST);
-        if (!(chest.getItem() instanceof OpenStuffArmorItem)) return;
+        if (!(chest.getItem() instanceof OpenArmorItem)) return;
 
         CompoundNBT tag = chest.getOrCreateTag();
         if (!tag.contains("Tablet")) return;
@@ -58,7 +64,7 @@ public class OpenStuffEvents {
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
         TabletWrapper tablet = Tablet.get(tabletStack, player);
 
-        String addr = ((OpenStuffArmorItem) chest.getItem()).getArmorComponentAddress();
+        String addr = ((OpenArmorItem) chest.getItem()).getArmorComponentAddress();
 
         if (tablet != null && tablet.machine() != null) {
             tablet.machine().signal("armor_hurt",addr, event.getSource().getMsgId());

@@ -1,12 +1,15 @@
 package ayral.gml;
 
+import ayral.gml.integration.ArmorStandDriver;
 import ayral.gml.item.OpenStuffItems;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.entity.item.ArmorStandEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.InterModComms;
@@ -20,6 +23,8 @@ import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import li.cil.oc.api.Driver;
 
 import static ayral.gml.OpenStuffIMC.registerArmorAssembler;
 import static ayral.gml.item.OpenStuffItems.ItemColorRegister;
@@ -54,6 +59,11 @@ public class OpenStuffMod
 
     private void setup(final FMLCommonSetupEvent event)
     {
+        ArmorStandDriver driver = new ArmorStandDriver();
+        MinecraftForge.EVENT_BUS.register(driver);
+        Driver.add(driver);
+
+
         NetworkHandler.register();
     }
 
@@ -72,8 +82,6 @@ public class OpenStuffMod
     {
 
     }
-
-
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
