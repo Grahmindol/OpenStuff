@@ -1,46 +1,44 @@
 # OpenStuff 🧠⚙️
 
-**OpenStuff** est un mod Minecraft 1.16 qui étend [OpenComputers (port 1.16)](https://github.com/KosmosPrime/OpenComputers) avec des objets intelligents comme une **armure-tablette** directement programmable via Lua.
+**OpenStuff** is a Minecraft 1.16 mod that extends [OpenComputers (1.16 port)](https://github.com/KosmosPrime/OpenComputers) with a **smart armor** directly programmable in Lua.
 
----
+***
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-- 🛡️ **Armure** intégrée à la pièce de torse (slot `CHEST`).
-- 📟 Accès à une interface graphic via la touche **`O`** du clavier.
-- 🧩 Composant Lua personnalisé (`component.armor`) accessible depuis OpenOS.
-- 💡 Lumière d’armure modifiable dynamiquement via le script Lua.
-- 🔋 La tablette démarre uniquement si l'armure complète est portée.
+*   🛡️ **Armor** crafted from Netherite armor
+*   📟 Access to a graphical interface via the **`O`** key
+*   🧩 Custom Lua component (`component.armor`) accessible from OpenOS
+*   💡 Armor light dynamically changeable via Lua script
 
----
+***
 
-## 🔧 Dépendances
+## 🔧 Dependencies
 
-- Minecraft `1.16.x`
-- Forge `36.x` (MC 1.16.5)
-- [OpenComputers (KosmosPrime fork)](https://github.com/KosmosPrime/OpenComputers)
+*   Minecraft `1.16.x`
+*   Forge `36.x` (MC 1.16.5)
+*   [OpenComputers (KosmosPrime fork)](https://github.com/KosmosPrime/OpenComputers)
 
----
+***
 
-## 💻 API Lua
+## 💻 Lua API
 
-Une fois dans OpenOS avec la tablette démarrée, utilisez :
-
-```lua
-local armor = component.armor
-
--- Exemple de gestion de lumière (si exposé par toi ensuite)
-armor.setLight(0x00FF00) -- Vert fluo
-print(string.format("Current light: %06X", armor.getLight()))
+Once inside OpenOS with the armor running, use:
 
 ```
+local armor = component.armor
 
----
+-- Example of light control (if exposed by you later)
+armor.setLight(0x00FF00) -- Bright green
+print(string.format("Current light: %06X", armor.getLight()))
+```
+
+***
 
 ## 🧪 Compilation
 
 ```bash
-git clone https://github.com/TON_PSEUDO/OpenStuff.git
+git clone https://github.com/Grahmindol/OpenStuff.git
 cd OpenStuff
 ./gradlew build
 ```
