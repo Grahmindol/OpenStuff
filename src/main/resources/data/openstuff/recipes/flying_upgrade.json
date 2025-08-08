@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "i i",
+    "CEC",
+    "ici"
+  ],
+  "key": {
+    "i": {
+      "tag": "forge:ingots/iron"
+    },
+    "E": {
+      "item": "minecraft:elytra"
+    },
+    "C": {
+      "tag": "opencomputers:circuitchip3"
+    }
+  },
+  "result": {
+    "item": "openstuff:flying_upgrade"
+  }
+}

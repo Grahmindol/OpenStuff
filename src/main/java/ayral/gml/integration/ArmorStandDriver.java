@@ -15,6 +15,7 @@ import li.cil.oc.api.network.Visibility;
 import li.cil.oc.api.prefab.AbstractManagedEnvironment;
 import li.cil.oc.common.item.data.TabletData;
 import li.cil.oc.common.tileentity.Adapter;
+import li.cil.oc.integration.opencomputers.DriverEEPROM;
 import li.cil.oc.integration.opencomputers.DriverFileSystem;
 import li.cil.oc.integration.opencomputers.DriverTablet;
 import net.minecraft.block.Block;
@@ -93,6 +94,7 @@ public class ArmorStandDriver implements DriverBlock {
         ArmorStandEntity stand;
         ManagedEnvironment fsenv;
         ManagedEnvironment armorenv;
+        ManagedEnvironment eepromenv;
 
         public Environment(ArmorStandEntity stand) {
             this.stand = stand;
@@ -102,24 +104,30 @@ public class ArmorStandDriver implements DriverBlock {
             OpenArmorItem.ensureTablet(tag);
             ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
             TabletData data = new TabletData(tabletStack);
+
+            EnvironmentHost host = new ArmorHost(stand);
             // Crée le filesystem associé
             ItemStack fsStack = Arrays.stream(data.items())
                     .filter(fs -> !fs.isEmpty() && DriverFileSystem.worksWith(fs))
                     .findFirst().orElse(ItemStack.EMPTY);
-
-            EnvironmentHost host = new ArmorHost(stand);
             fsenv = DriverFileSystem.createEnvironment(fsStack, host);
+
+            ItemStack eepromStack = Arrays.stream(data.items())
+                    .filter(eeprom -> !eeprom.isEmpty() && DriverEEPROM.worksWith(eeprom))
+                    .findFirst().orElse(ItemStack.EMPTY);
+            eepromenv = DriverEEPROM.createEnvironment(eepromStack, host);
+
             armorenv = new DriverArmor.Environment(host);
 
-            setNode(Network.newNode(this, Visibility.Network).withConnector().create());
-
+            setNode(Network.newNode(this, Visibility.None).withConnector().create());
         }
 
         @Override
         public void onConnect(final Node node) {
             if (node.host() instanceof Context) {
-                node.connect(this.fsenv.node());
-                node.connect(this.armorenv.node());
+                node.connect(fsenv.node());
+                node.connect(eepromenv.node());
+                node.connect(armorenv.node());
             }
         }
 
@@ -127,9 +135,11 @@ public class ArmorStandDriver implements DriverBlock {
         public void onDisconnect(final Node node) {
             if (node.host() instanceof Context) {
                 node.disconnect(fsenv.node());
+                node.disconnect(eepromenv.node());
                 node.disconnect(armorenv.node());
             } else if (node == this.node()) {
                 fsenv.node().remove();
+                eepromenv.node().remove();
                 armorenv.node().remove();
             }
         }
@@ -144,6 +154,11 @@ public class ArmorStandDriver implements DriverBlock {
             fsenv.loadData(DriverTablet.dataTag(tabletStack));
 
             TabletData data = new TabletData(tabletStack);
+            eepromenv.loadData(Arrays.stream(data.items())
+                    .filter(eeprom -> !eeprom.isEmpty() && DriverEEPROM.worksWith(eeprom))
+                    .findFirst().orElse(ItemStack.EMPTY).getOrCreateTag());
+
+
             armorenv.loadData(data.items()[30].getOrCreateTag());
 
             super.loadData(nbt);
@@ -161,6 +176,11 @@ public class ArmorStandDriver implements DriverBlock {
             fsenv.saveData(DriverTablet.dataTag(tabletStack));
 
             TabletData data = new TabletData(tabletStack);
+
+            eepromenv.saveData(Arrays.stream(data.items())
+                    .filter(eeprom -> !eeprom.isEmpty() && DriverEEPROM.worksWith(eeprom))
+                    .findFirst().orElse(ItemStack.EMPTY).getOrCreateTag());
+
             armorenv.saveData(data.items()[30].getOrCreateTag());
 
             tag.put("Tablet", data.createItemStack().save(new CompoundNBT()));

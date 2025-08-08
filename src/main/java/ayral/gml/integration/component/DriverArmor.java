@@ -16,6 +16,7 @@ import li.cil.oc.api.prefab.AbstractManagedEnvironment;
 import li.cil.oc.api.prefab.DriverItem;
 import li.cil.oc.common.item.TabletWrapper;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 
@@ -80,9 +81,14 @@ public class DriverArmor extends DriverItem {
             ItemStack chestStack = holder.getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
                 ((OpenArmorItem) chestStack.getItem()).setColor(chestStack,color);
-                return new Object[]{true};
             }
-            return new Object[]{false};
+            return new Object[]{};
         }
+
+        @Callback(doc = "function():boolean -- check if the armor is on a player")
+        public Object[] isHeld(Context context, Arguments args) {
+            return new Object[]{holder instanceof PlayerEntity};
+        }
+
     }
 }
