@@ -8,8 +8,6 @@ import ayral.gml.model.OpenArmorModel;
 import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
-import li.cil.oc.api.Driver;
-import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.common.Tier;
 import li.cil.oc.common.item.Tablet;
@@ -26,10 +24,7 @@ import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.Constants;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
@@ -124,23 +119,6 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         if (this.armorComponent == null){
             this.armorComponent =new ArmorComponent(host);
         }
-        if (dynamicComponents == null) {
-            dynamicComponents = new ArrayList<>();
-            if (tag.contains("components", Constants.NBT.TAG_LIST)) {
-                ListNBT list = tag.getList("components", Constants.NBT.TAG_COMPOUND);
-
-                for (INBT raw : list) {
-                    if (!(raw instanceof CompoundNBT)) continue;
-
-                    ItemStack stack = ItemStack.of((CompoundNBT) raw);
-                    ManagedEnvironment env = Driver.driverFor(stack).createEnvironment(stack, host);
-
-                    if (env != null) {
-                        dynamicComponents.add(Pair.of(stack, env));
-                    }
-                }
-            }
-        }
 
         if (tag.contains("Armor")) {
             CompoundNBT armorTag = tag.getCompound("Armor");
@@ -150,10 +128,6 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         if (!this.armorComponent.node().canBeReachedFrom(tablet.node()))
             tablet.connectItemNode(this.armorComponent.node());
 
-        for (Pair<ItemStack, ManagedEnvironment> pair : dynamicComponents) {
-            if (!pair.getRight().node().canBeReachedFrom(tablet.node()))
-                tablet.connectItemNode(pair.getRight().node());
-        }
     }
 
     private void saveArmorComponent(CompoundNBT tag) {

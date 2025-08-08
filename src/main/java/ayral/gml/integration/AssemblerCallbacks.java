@@ -1,10 +1,12 @@
 package ayral.gml.integration;
 
 import ayral.gml.item.OpenStuffItems;
+import li.cil.oc.common.item.data.TabletData;
 import li.cil.oc.common.item.traits.Chargeable;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.text.StringTextComponent;
 
 public class AssemblerCallbacks {
@@ -24,16 +26,24 @@ public class AssemblerCallbacks {
     public static Object[] chest_assemble(IInventory inventory) {
         ItemStack result = new ItemStack(OpenStuffItems.OPEN_CHESTPLATE.get()); // ex output
 
-        // Recherche la tablette dans l'inventaire
-        for (int i = 0; i < inventory.getContainerSize(); i++) {
-            ItemStack item = inventory.getItem(i);
-            if (item.getItem().getRegistryName().toString().equals("opencomputers:tablet")) {
-                CompoundNBT tabletTag = new CompoundNBT();
-                item.save(tabletTag); // copie l'itemStack complet (Tablet)
-                result.getOrCreateTag().put("Tablet", tabletTag);
-                break;
-            }
+        TabletData data = new TabletData(inventory.getItem(17));
+
+        ItemStack[] items = data.items();
+        for (int i = 4; i <= 12; i++) {
+            ItemStack stack = inventory.getItem(i);
+            stack.getOrCreateTag().putBoolean("is_on_armor",true);
+            items[i+16] = stack;
         }
+        data.items_$eq(items);
+
+        CompoundNBT tabletTag = new CompoundNBT();
+        data.createItemStack().save(tabletTag);
+        result.getOrCreateTag().put("Tablet", tabletTag);
+
+        CompoundNBT tag = result.getOrCreateTag();
+
+
+        //---------------------- Chargeable management ---------------------
 
         double max = 0;
         double current = 0;
@@ -47,7 +57,6 @@ public class AssemblerCallbacks {
             current += item.getCharge(stack);
         }
 
-        CompoundNBT tag = result.getOrCreateTag();
         tag.putDouble("maxEnergy", max);
         tag.putDouble("Energy", current); // facultatif, tu peux initialiser à 0 si tu veux forcer la recharge
         result.setTag(tag);

@@ -27,6 +27,9 @@ public class OpenStuffItems {
     public static final RegistryObject<Item> OPEN_BOOTS = ITEMS.register("open_boots",
             () -> new OpenArmorItem(EquipmentSlotType.FEET));
 
+    public static final RegistryObject<Item> FLYING_UPGRADE = ITEMS.register("flying_upgrade",
+            FlyingUpgrade::new);
+
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);
     }

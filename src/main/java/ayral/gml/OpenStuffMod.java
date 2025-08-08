@@ -1,6 +1,7 @@
 package ayral.gml;
 
 import ayral.gml.integration.ArmorStandDriver;
+import ayral.gml.integration.FlyingComponent;
 import ayral.gml.item.OpenStuffItems;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -27,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 import li.cil.oc.api.Driver;
 
 import static ayral.gml.OpenStuffIMC.registerArmorAssembler;
+import static ayral.gml.item.OpenStuffItems.FLYING_UPGRADE;
 import static ayral.gml.item.OpenStuffItems.ItemColorRegister;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -62,6 +64,10 @@ public class OpenStuffMod
         ArmorStandDriver driver = new ArmorStandDriver();
         MinecraftForge.EVENT_BUS.register(driver);
         Driver.add(driver);
+
+
+        Driver.add(new FlyingComponent());
+
 
 
         NetworkHandler.register();

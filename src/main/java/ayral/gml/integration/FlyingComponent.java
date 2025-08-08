@@ -12,13 +12,22 @@ import li.cil.oc.api.network.Visibility;
 import li.cil.oc.api.prefab.AbstractManagedEnvironment;
 import li.cil.oc.api.prefab.DriverItem;
 import li.cil.oc.common.Slot;
+import li.cil.oc.common.item.TabletWrapper;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 
+import static ayral.gml.item.OpenStuffItems.FLYING_UPGRADE;
+
 public class FlyingComponent extends DriverItem {
+    public FlyingComponent() {
+        super(new ItemStack(FLYING_UPGRADE.get()) );
+    }
+
     @Override
     public ManagedEnvironment createEnvironment(ItemStack itemStack, EnvironmentHost host) {
-        return new Environment((ArmorHost) host);
+        if (!(host instanceof TabletWrapper)) return null;
+        if (!itemStack.getOrCreateTag().getBoolean("is_on_armor")) return null;
+        return new Environment((TabletWrapper) host);
     }
 
     @Override
@@ -27,9 +36,9 @@ public class FlyingComponent extends DriverItem {
     }
 
     public static final class Environment extends AbstractManagedEnvironment{
-        private final ArmorHost host;
+        private final TabletWrapper host;
 
-        public Environment(ArmorHost host) {
+        public Environment(TabletWrapper host) {
             this.host = host;
             setNode(Network.newNode(this, Visibility.Network)
                     .withComponent("flying")
@@ -38,7 +47,7 @@ public class FlyingComponent extends DriverItem {
 
         @Callback(doc = "function() -- start fall flying.")
         public Object[] enableFlying(Context context, Arguments args) {
-            ItemStack chestStack = host.getHolder().getItemBySlot(EquipmentSlotType.CHEST);
+            ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
                 ((OpenArmorItem) chestStack.getItem()).setFlightEnabled(chestStack,true);
                 return new Object[]{true};
@@ -48,7 +57,7 @@ public class FlyingComponent extends DriverItem {
 
         @Callback(doc = "function() -- stop fall flying.")
         public Object[] disableFlying(Context context, Arguments args) {
-            ItemStack chestStack = host.getHolder().getItemBySlot(EquipmentSlotType.CHEST);
+            ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
                 return new Object[]{((OpenArmorItem) chestStack.getItem()).setFlightEnabled(chestStack,false)};
             }
@@ -57,7 +66,7 @@ public class FlyingComponent extends DriverItem {
 
         @Callback(doc = "function():boolean -- check if is fall flying.")
         public Object[] isFlyingEnable(Context context, Arguments args) {
-            ItemStack chestStack = host.getHolder().getItemBySlot(EquipmentSlotType.CHEST);
+            ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
                 return new Object[]{((OpenArmorItem) chestStack.getItem()).isFlyingEnable(chestStack)};
             }
@@ -66,7 +75,7 @@ public class FlyingComponent extends DriverItem {
 
         @Callback(doc = "function():boolean -- check if is on ground.")
         public Object[] isOnGround(Context context, Arguments args) {
-            return new Object[]{host.getHolder().isOnGround()};
+            return new Object[]{host.player().isOnGround()};
         }
     }
 }
