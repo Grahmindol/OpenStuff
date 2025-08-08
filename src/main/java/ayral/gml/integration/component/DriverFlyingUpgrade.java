@@ -1,7 +1,6 @@
-package ayral.gml.integration;
+package ayral.gml.integration.component;
 
 import ayral.gml.item.OpenArmorItem;
-import li.cil.oc.Constants;
 import li.cil.oc.api.Network;
 import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
@@ -18,8 +17,8 @@ import net.minecraft.item.ItemStack;
 
 import static ayral.gml.item.OpenStuffItems.FLYING_UPGRADE;
 
-public class FlyingComponent extends DriverItem {
-    public FlyingComponent() {
+public class DriverFlyingUpgrade extends DriverItem {
+    public DriverFlyingUpgrade() {
         super(new ItemStack(FLYING_UPGRADE.get()) );
     }
 

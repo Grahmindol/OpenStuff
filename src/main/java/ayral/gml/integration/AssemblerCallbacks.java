@@ -5,6 +5,7 @@ import li.cil.oc.common.item.data.TabletData;
 import li.cil.oc.common.item.traits.Chargeable;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.text.StringTextComponent;
@@ -24,8 +25,7 @@ public class AssemblerCallbacks {
     }
 
     public static Object[] chest_assemble(IInventory inventory) {
-        ItemStack result = new ItemStack(OpenStuffItems.OPEN_CHESTPLATE.get()); // ex output
-
+        ItemStack result = new ItemStack(OpenStuffItems.OPEN_CHESTPLATE.get());
         TabletData data = new TabletData(inventory.getItem(17));
 
         ItemStack[] items = data.items();
@@ -34,6 +34,7 @@ public class AssemblerCallbacks {
             stack.getOrCreateTag().putBoolean("is_on_armor",true);
             items[i+16] = stack;
         }
+        items[30] = new ItemStack(Items.NETHERITE_CHESTPLATE);
         data.items_$eq(items);
 
         CompoundNBT tabletTag = new CompoundNBT();
@@ -58,7 +59,7 @@ public class AssemblerCallbacks {
         }
 
         tag.putDouble("maxEnergy", max);
-        tag.putDouble("Energy", current); // facultatif, tu peux initialiser à 0 si tu veux forcer la recharge
+        tag.putDouble("Energy", current);
         result.setTag(tag);
 
         int cost = (int)(max - current); // coût = charge manquante
@@ -81,7 +82,6 @@ public class AssemblerCallbacks {
         return new Object[]{true};
     }
 
-    // Assemblage : retourne l’item résultant (ta custom armor)
     public static Object[] assemble(IInventory inventory) {
         String name = inventory.getItem(0).getItem().getRegistryName().toString();
         ItemStack result = null;

@@ -1,5 +1,6 @@
 package ayral.gml.integration;
 
+import ayral.gml.integration.component.DriverArmor;
 import ayral.gml.item.OpenArmorItem;
 import li.cil.oc.api.Network;
 import li.cil.oc.api.driver.DriverBlock;
@@ -7,6 +8,7 @@ import li.cil.oc.api.driver.NamedBlock;
 import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
+import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
 import li.cil.oc.api.network.Visibility;
@@ -90,6 +92,7 @@ public class ArmorStandDriver implements DriverBlock {
     public static final class Environment extends AbstractManagedEnvironment {
         ArmorStandEntity stand;
         ManagedEnvironment fsenv;
+        ManagedEnvironment armorenv;
 
         public Environment(ArmorStandEntity stand) {
             this.stand = stand;
@@ -104,10 +107,11 @@ public class ArmorStandDriver implements DriverBlock {
                     .filter(fs -> !fs.isEmpty() && DriverFileSystem.worksWith(fs))
                     .findFirst().orElse(ItemStack.EMPTY);
 
-            fsenv = DriverFileSystem.createEnvironment(fsStack, new ArmorHost(stand));
+            EnvironmentHost host = new ArmorHost(stand);
+            fsenv = DriverFileSystem.createEnvironment(fsStack, host);
+            armorenv = new DriverArmor.Environment(host);
 
-            setNode(Network.newNode(this, Visibility.Network).
-                    withComponent("stand").withConnector().create());
+            setNode(Network.newNode(this, Visibility.Network).withConnector().create());
 
         }
 
@@ -115,6 +119,7 @@ public class ArmorStandDriver implements DriverBlock {
         public void onConnect(final Node node) {
             if (node.host() instanceof Context) {
                 node.connect(this.fsenv.node());
+                node.connect(this.armorenv.node());
             }
         }
 
@@ -122,8 +127,10 @@ public class ArmorStandDriver implements DriverBlock {
         public void onDisconnect(final Node node) {
             if (node.host() instanceof Context) {
                 node.disconnect(fsenv.node());
+                node.disconnect(armorenv.node());
             } else if (node == this.node()) {
                 fsenv.node().remove();
+                armorenv.node().remove();
             }
         }
 
@@ -135,6 +142,9 @@ public class ArmorStandDriver implements DriverBlock {
             ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
 
             fsenv.loadData(DriverTablet.dataTag(tabletStack));
+
+            TabletData data = new TabletData(tabletStack);
+            armorenv.loadData(data.items()[30].getOrCreateTag());
 
             super.loadData(nbt);
         }
@@ -150,7 +160,10 @@ public class ArmorStandDriver implements DriverBlock {
 
             fsenv.saveData(DriverTablet.dataTag(tabletStack));
 
-            tag.put("Tablet", tabletStack.save(new CompoundNBT()));
+            TabletData data = new TabletData(tabletStack);
+            armorenv.saveData(data.items()[30].getOrCreateTag());
+
+            tag.put("Tablet", data.createItemStack().save(new CompoundNBT()));
             super.saveData(nbt);
         }
     }

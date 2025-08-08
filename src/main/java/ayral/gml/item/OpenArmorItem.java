@@ -2,13 +2,10 @@ package ayral.gml.item;
 
 import ayral.gml.NetworkHandler;
 import ayral.gml.OpenStuffMod;
-import ayral.gml.integration.ArmorComponent;
-import ayral.gml.integration.ArmorHost;
 import ayral.gml.model.OpenArmorModel;
 import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
 import li.cil.oc.api.CreativeTab;
-import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.common.Tier;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
@@ -25,7 +22,6 @@ import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.world.World;
-import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,17 +29,10 @@ import java.util.List;
 
 public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
     static final int DEFAULT_COLOR = 0x00FF00;
-    private ArmorComponent armorComponent = null;
-    private List<Pair<ItemStack, ManagedEnvironment>> dynamicComponents = null;
 
     public OpenArmorItem(EquipmentSlotType slot) {
         super(OpenArmorMaterial.OPEN_ARMOR_MATERIAL, slot, new Item.Properties().tab(CreativeTab.instance)
                 .fireResistant());
-    }
-
-    public String getArmorComponentAddress(){
-        if (this.armorComponent == null)return null;
-        return this.armorComponent.node().address();
     }
 
     public static boolean isWearingFullSet(LivingEntity entity) {
@@ -71,15 +60,12 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         rechargeTabletFromArmor(tag, tabletStack);
 
         TabletWrapper tablet = Tablet.get(tabletStack, player);
-        loadArmorComponent(tag, tablet, player);
 
         tablet.connectComponents();
         tablet.update(world, player, -1, false);
         tag.putBoolean("is_armor_running",tablet.machine().isRunning());
         tag.put("Tablet", tabletStack.save(new CompoundNBT()));
 
-
-        saveArmorComponent(tag);
         uniformizeArmorEnergy(player);
     }
 
@@ -112,28 +98,6 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
                 tag.putDouble("Energy", chestEnergy - transfer);
             }
         }
-    }
-
-    private void loadArmorComponent(CompoundNBT tag, TabletWrapper tablet, PlayerEntity player) {
-        ArmorHost host = new ArmorHost(player);
-        if (this.armorComponent == null){
-            this.armorComponent =new ArmorComponent(host);
-        }
-
-        if (tag.contains("Armor")) {
-            CompoundNBT armorTag = tag.getCompound("Armor");
-            this.armorComponent.node().loadData(armorTag);
-        }
-
-        if (!this.armorComponent.node().canBeReachedFrom(tablet.node()))
-            tablet.connectItemNode(this.armorComponent.node());
-
-    }
-
-    private void saveArmorComponent(CompoundNBT tag) {
-        CompoundNBT armorTag = new CompoundNBT();
-        this.armorComponent.node().saveData(armorTag);
-        tag.put("Armor", armorTag);
     }
 
 
@@ -281,9 +245,6 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         tabletStack.getItem().releaseUsing(tabletStack,player.level,player,72000);
 
         tag.put("Tablet", tabletStack.save(new CompoundNBT()));
-        CompoundNBT armorTag = new CompoundNBT();
-        ((OpenArmorItem) chestStack.getItem()).armorComponent.node().saveData(armorTag);
-        chestStack.getOrCreateTag().put("Armor", armorTag);
     }
 
     // ------------------------ Creative fake tablet generator ------------------------
@@ -325,6 +286,8 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
 
         // Override slot 31 (dernier) par OpenOS
         items[31] = safeGetStack("openos");
+
+        items[30] = new ItemStack(Items.NETHERITE_CHESTPLATE);
 
         data.items_$eq(items);
 

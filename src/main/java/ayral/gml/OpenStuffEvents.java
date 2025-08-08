@@ -64,7 +64,7 @@ public class OpenStuffEvents {
         ItemStack tabletStack = ItemStack.of(tag.getCompound("Tablet"));
         TabletWrapper tablet = Tablet.get(tabletStack, player);
 
-        String addr = ((OpenArmorItem) chest.getItem()).getArmorComponentAddress();
+        String addr = "addr of the armor....";
 
         if (tablet != null && tablet.machine() != null) {
             tablet.machine().signal("armor_hurt",addr, event.getSource().getMsgId());

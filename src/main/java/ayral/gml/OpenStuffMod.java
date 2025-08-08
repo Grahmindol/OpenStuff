@@ -1,19 +1,14 @@
 package ayral.gml;
 
 import ayral.gml.integration.ArmorStandDriver;
-import ayral.gml.integration.FlyingComponent;
+import ayral.gml.integration.component.DriverArmor;
+import ayral.gml.integration.component.DriverFlyingUpgrade;
 import ayral.gml.item.OpenStuffItems;
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.item.ArmorStandEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.InterModComms;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -28,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import li.cil.oc.api.Driver;
 
 import static ayral.gml.OpenStuffIMC.registerArmorAssembler;
-import static ayral.gml.item.OpenStuffItems.FLYING_UPGRADE;
 import static ayral.gml.item.OpenStuffItems.ItemColorRegister;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -66,8 +60,8 @@ public class OpenStuffMod
         Driver.add(driver);
 
 
-        Driver.add(new FlyingComponent());
-
+        Driver.add(new DriverFlyingUpgrade());
+        Driver.add(new DriverArmor());
 
 
         NetworkHandler.register();
