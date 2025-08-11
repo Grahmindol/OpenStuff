@@ -7,5 +7,7 @@
   "item.openstuff.flying_upgrade": "Flying Upgrade",
 
   "key.categories.openstuff": "OpenStuff",
-  "key.openstuff.armor": "Armor Interact"
+  "key.openstuff.armor": "Armor Interact",
+
+  "tooltip.openstuff.flying_upgrade" : "This upgrade allows player to fly when used in the open chest"
 }

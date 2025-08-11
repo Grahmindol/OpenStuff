@@ -2,8 +2,6 @@ package ayral.gml.integration.component;
 
 import ayral.gml.integration.ArmorHost;
 import ayral.gml.item.OpenArmorItem;
-import li.cil.oc.Settings;
-import li.cil.oc.api.Nanomachines;
 import li.cil.oc.api.Network;
 import li.cil.oc.api.driver.DeviceInfo;
 import li.cil.oc.api.machine.Arguments;

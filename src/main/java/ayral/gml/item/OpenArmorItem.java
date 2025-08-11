@@ -100,8 +100,6 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         }
     }
 
-
-
     private void uniformizeArmorEnergy(PlayerEntity player) {
         List<ItemStack> openStuffPieces = new ArrayList<>();
         double totalEnergy = 0;
@@ -288,6 +286,7 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         items[31] = safeGetStack("openos");
 
         items[30] = new ItemStack(Items.NETHERITE_CHESTPLATE);
+        items[20] = new ItemStack(OpenStuffItems.FLYING_UPGRADE.get());
 
         data.items_$eq(items);
 
