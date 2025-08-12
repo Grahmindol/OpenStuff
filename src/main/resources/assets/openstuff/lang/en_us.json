@@ -9,5 +9,6 @@
   "key.categories.openstuff": "OpenStuff",
   "key.openstuff.armor": "Armor Interact",
 
-  "tooltip.openstuff.flying_upgrade" : "This upgrade allows player to fly when used in the open chest"
+  "tooltip.openstuff.flying_upgrade" : "This upgrade allows player to fly when used in the open chest",
+  "tooltip.openstuff.swimming_upgrade" : "This upgrade allows player to swim when used in the open chest"
 }

@@ -15,11 +15,11 @@ import li.cil.oc.common.item.TabletWrapper;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 
-import static ayral.gml.item.OpenStuffItems.FLYING_UPGRADE;
+import static ayral.gml.item.OpenStuffItems.SWIMMING_UPGRADE;
 
-public class DriverFlyingUpgrade extends DriverItem {
-    public DriverFlyingUpgrade() {
-        super(new ItemStack(FLYING_UPGRADE.get()) );
+public class DriverSwimmingUpgrade extends DriverItem {
+    public DriverSwimmingUpgrade() {
+        super(new ItemStack(SWIMMING_UPGRADE.get()) );
     }
 
     @Override
@@ -40,40 +40,40 @@ public class DriverFlyingUpgrade extends DriverItem {
         public Environment(TabletWrapper host) {
             this.host = host;
             setNode(Network.newNode(this, Visibility.Network)
-                    .withComponent("flying")
+                    .withComponent("swimming")
                     .create());
         }
 
-        @Callback(doc = "function() -- start fall flying.")
-        public Object[] enableFlying(Context context, Arguments args) {
+        @Callback(doc = "function() -- start swimming.")
+        public Object[] enableSwimming(Context context, Arguments args) {
             ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
-                return new Object[]{OpenArmorItem.setFlightEnabled(chestStack,true)};
+                return new Object[]{OpenArmorItem.setSwamEnabled(chestStack,true)};
             }
             return new Object[]{false};
         }
 
-        @Callback(doc = "function() -- stop fall flying.")
-        public Object[] disableFlying(Context context, Arguments args) {
+        @Callback(doc = "function() -- stop swimming.")
+        public Object[] disableSwimming(Context context, Arguments args) {
             ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
-                return new Object[]{OpenArmorItem.setFlightEnabled(chestStack,false)};
+                return new Object[]{OpenArmorItem.setSwamEnabled(chestStack,false)};
             }
             return new Object[]{false};
         }
 
-        @Callback(doc = "function():boolean -- check if is fall flying.")
-        public Object[] isFlyingEnable(Context context, Arguments args) {
+        @Callback(doc = "function():boolean -- check if is swimming.")
+        public Object[] isSwimmingEnable(Context context, Arguments args) {
             ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
             if (chestStack.getItem() instanceof OpenArmorItem) {
-                return new Object[]{OpenArmorItem.isFlyingEnable(chestStack)};
+                return new Object[]{OpenArmorItem.isSwimmingEnable(chestStack)};
             }
             return new Object[]{false};
         }
 
-        @Callback(doc = "function():boolean -- check if is on ground.")
-        public Object[] isOnGround(Context context, Arguments args) {
-            return new Object[]{host.player().isOnGround()};
+        @Callback(doc = "function():boolean -- check if is on water.")
+        public Object[] isOnWater(Context context, Arguments args) {
+            return new Object[]{host.player().isInWater()};
         }
     }
 }

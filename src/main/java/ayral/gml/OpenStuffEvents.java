@@ -4,12 +4,13 @@ import ayral.gml.integration.ArmorStandDriver;
 import ayral.gml.item.OpenArmorItem;
 import li.cil.oc.common.item.Tablet;
 import li.cil.oc.common.item.TabletWrapper;
+import net.minecraft.entity.Pose;
 import net.minecraft.entity.item.ArmorStandEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -70,6 +71,16 @@ public class OpenStuffEvents {
         if (tablet != null && tablet.machine() != null) {
             tablet.machine().signal("armor_hurt",addr, event.getSource().getMsgId());
         }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRenderBefore(RenderPlayerEvent.Pre event) {
+        if (!(event.getEntityLiving() instanceof PlayerEntity)) return;
+        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        if (!OpenArmorItem.isWearingFullSet(player)) return;
+
+        // custom renderer to do.....
+
     }
 }
 

@@ -203,7 +203,7 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         return true;
     }
 
-    public boolean setFlightEnabled(ItemStack stack, boolean b) {
+    public static boolean setFlightEnabled(ItemStack stack, boolean b) {
         CompoundNBT root = stack.getOrCreateTag();
         CompoundNBT feature = root.getCompound("feature");
         feature.putBoolean("flying", b);
@@ -212,10 +212,29 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         return true;
     }
 
-    public boolean isFlyingEnable(ItemStack stack) {
+    public static boolean isFlyingEnable(ItemStack stack) {
         CompoundNBT nbt = stack.getTagElement("feature");
         if (nbt != null) {
             return nbt.getBoolean("flying");
+        }
+        return false;
+    }
+
+    // ------------------------ Swim logic -----------------------------
+
+    public static boolean setSwamEnabled(ItemStack stack, boolean b) {
+        CompoundNBT root = stack.getOrCreateTag();
+        CompoundNBT feature = root.getCompound("feature");
+        feature.putBoolean("swimming", b);
+        root.put("feature", feature);
+        stack.setTag(root);
+        return true;
+    }
+
+    public static boolean isSwimmingEnable(ItemStack stack) {
+        CompoundNBT nbt = stack.getTagElement("feature");
+        if (nbt != null) {
+            return nbt.getBoolean("swimming");
         }
         return false;
     }

@@ -3,6 +3,7 @@ package ayral.gml;
 import ayral.gml.integration.ArmorStandDriver;
 import ayral.gml.integration.component.DriverArmor;
 import ayral.gml.integration.component.DriverFlyingUpgrade;
+import ayral.gml.integration.component.DriverSwimmingUpgrade;
 import ayral.gml.item.OpenStuffItems;
 import net.minecraft.block.Block;
 import net.minecraftforge.common.MinecraftForge;
@@ -61,6 +62,7 @@ public class OpenStuffMod
 
 
         Driver.add(new DriverFlyingUpgrade());
+        Driver.add(new DriverSwimmingUpgrade());
         Driver.add(new DriverArmor());
 
 
