@@ -42,6 +42,8 @@ public class DriverSwimmingUpgrade extends DriverItem {
             setNode(Network.newNode(this, Visibility.Network)
                     .withComponent("swimming")
                     .create());
+            ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
+            OpenArmorItem.setSwamEnabled(chestStack,false);
         }
 
         @Callback(doc = "function() -- start swimming.")

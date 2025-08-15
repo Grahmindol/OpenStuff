@@ -2,6 +2,7 @@ package ayral.gml.item;
 
 import ayral.gml.NetworkHandler;
 import ayral.gml.OpenStuffMod;
+import ayral.gml.model.ConduitComponentRender;
 import ayral.gml.model.OpenArmorModel;
 import ayral.gml.network.OpenTabletGuiPacket;
 import li.cil.oc.Settings;
@@ -21,6 +22,10 @@ import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
+import net.minecraft.tileentity.ConduitTileEntity;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
@@ -53,6 +58,7 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
     @Override
     public void onArmorTick(ItemStack stack, World world, PlayerEntity player) {
         if (world.isClientSide || slot != EquipmentSlotType.CHEST) return;
+        if (player.isInWater()) this.armorSwamTick(stack,world,player);
         CompoundNBT tag = stack.getOrCreateTag();
 
         ensureTablet(tag);
@@ -203,6 +209,7 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         return true;
     }
 
+
     public static boolean setFlightEnabled(ItemStack stack, boolean b) {
         CompoundNBT root = stack.getOrCreateTag();
         CompoundNBT feature = root.getCompound("feature");
@@ -221,6 +228,12 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
     }
 
     // ------------------------ Swim logic -----------------------------
+
+    private void armorSwamTick(ItemStack stack, World world, PlayerEntity player){
+        if (! isSwimmingEnable(stack)) return;
+        player.addEffect(new EffectInstance(Effects.CONDUIT_POWER, 260, 0, true, true));
+    }
+
 
     public static boolean setSwamEnabled(ItemStack stack, boolean b) {
         CompoundNBT root = stack.getOrCreateTag();
