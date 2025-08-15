@@ -42,6 +42,8 @@ public class DriverFlyingUpgrade extends DriverItem {
             setNode(Network.newNode(this, Visibility.Network)
                     .withComponent("flying")
                     .create());
+            ItemStack chestStack = host.player().getItemBySlot(EquipmentSlotType.CHEST);
+            OpenArmorItem.setFlightEnabled(chestStack,false);
         }
 
         @Callback(doc = "function() -- start fall flying.")

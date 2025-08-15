@@ -5,7 +5,9 @@ import ayral.gml.integration.component.DriverArmor;
 import ayral.gml.integration.component.DriverFlyingUpgrade;
 import ayral.gml.integration.component.DriverSwimmingUpgrade;
 import ayral.gml.item.OpenStuffItems;
+import ayral.gml.model.ArmorComponentLayer;
 import net.minecraft.block.Block;
+import net.minecraft.client.Minecraft;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -73,6 +75,8 @@ public class OpenStuffMod
         // do something that can only be done on the client
         ClientRegistry.registerKeyBinding(KeyInputHandler.KEY_OPEN_ARMOR);
         ItemColorRegister(event);
+        Minecraft.getInstance().getEntityRenderDispatcher()
+                .getSkinMap().values().forEach(renderer -> renderer.addLayer(new ArmorComponentLayer<>(renderer)));
     }
 
     private void enqueueIMC(final InterModEnqueueEvent event)

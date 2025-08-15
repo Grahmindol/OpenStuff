@@ -2,15 +2,12 @@ package ayral.gml.model;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.vertex.IVertexBuilder;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.model.BipedModel;
 import net.minecraft.client.renderer.model.ModelRenderer;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.util.ResourceLocation;
 
-public class OpenArmorModel extends BipedModel {
-
+public class OpenArmorModel<T extends LivingEntity> extends BipedModel {
 
     public ModelRenderer bipedLeftArmOverlay;
     public ModelRenderer bipedRightArmOverlay;
