@@ -32,7 +32,7 @@ public class ElytraComponentRender <T extends LivingEntity, M extends BipedModel
         float green = ((lightColor >>> 8) & 0xFF)/255f;
         float blue = ((lightColor >>> 0) & 0xFF)/255f;
 
-        if (!OpenArmorItem.isRunning(chest)){
+        if (!chest.getItem().canElytraFly(chest,entity)){
             red /= 4.0f;
             green /= 4.0f;
             blue /= 4.0f;

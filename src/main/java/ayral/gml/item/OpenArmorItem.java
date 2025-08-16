@@ -318,7 +318,14 @@ public class OpenArmorItem extends DyeableArmorItem implements Chargeable {
         items[31] = safeGetStack("openos");
 
         items[30] = new ItemStack(Items.NETHERITE_CHESTPLATE);
-        items[20] = new ItemStack(OpenStuffItems.FLYING_UPGRADE.get());
+
+        ItemStack flying = new ItemStack(OpenStuffItems.FLYING_UPGRADE.get());
+        flying.getOrCreateTag().putBoolean("is_on_armor",true);
+        items[20] = flying;
+
+        ItemStack swimming = new ItemStack(OpenStuffItems.SWIMMING_UPGRADE.get());
+        swimming.getOrCreateTag().putBoolean("is_on_armor",true);
+        items[21] = swimming;
 
         data.items_$eq(items);
 
