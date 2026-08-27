@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
+    id 'scala'
 }
 
 group = mod_group_id
@@ -74,9 +75,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly "li.cil.oc:opencomputers:${opencomputers_version}"
-    runtimeOnly "li.cil.oc:opencomputers:${opencomputers_version}"
-    runtimeOnly "com.kotori316:scalablecatsforce-neoforge:${scala_loader_version}:with-library"
+    implementation files('libs/opencomputers-1.9.3-dev.local.jar')
+    //compileOnly "li.cil.oc:opencomputers:${opencomputers_version}"
+    //runtimeOnly "li.cil.oc:opencomputers:${opencomputers_version}"
+    implementation "com.kotori316:scalablecatsforce-neoforge:${scala_loader_version}:with-library"
     implementation 'org.mindrot:jbcrypt:0.4'
 }
 
