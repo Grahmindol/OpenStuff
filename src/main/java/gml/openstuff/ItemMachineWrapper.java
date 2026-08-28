@@ -19,6 +19,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -118,7 +119,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public int componentSlot(String address) {
-        // TO DO
         return -1;
     }
 
@@ -158,12 +158,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
     public void onDisconnect(Node node){
         if (node == this.node()) {
             disconnectComponents();
-        }
-
-        for (var slot : this.componentSlots()) {
-            if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
-                piece.onDisconnect(node);
-            }
         }
     }
 
@@ -264,6 +258,11 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     private void tryOpenArmorScreen() {
         for (var slot : this.componentSlots()) {
+            if (slot != null && slot.isDefined() && slot.get() instanceof TextBuffer buffer) {
+                Minecraft.getInstance().pushGuiLayer(new li.cil.oc.client.gui.Screen(buffer, true, () -> true, buffer::isRenderingEnabled));
+                return; // Stops execution immediately once found
+            } else
+
             if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
                 for (var subSlot : piece.componentSlots()) {
                     if (subSlot != null && subSlot.isDefined() && subSlot.get() instanceof TextBuffer buffer) {

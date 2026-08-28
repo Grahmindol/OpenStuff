@@ -1,6 +1,5 @@
 package gml.openstuff.container;
 
-import com.mojang.realmsclient.util.TextRenderingUtils;
 import gml.openstuff.OpenStuff;
 import li.cil.oc.api.UnrecoverablePersistanceException;
 import li.cil.oc.api.driver.DriverItem;
@@ -13,6 +12,11 @@ import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 import scala.collection.mutable.ArrayBuffer;
+
+
+import li.cil.oc.api.Driver;
+import li.cil.oc.OpenComputers;
+import scala.Option;
 
 // TODO : also burk....
 public abstract class ManagedComponentInventory extends AbstractManagedEnvironment implements li.cil.oc.common.container.ComponentInventory {
@@ -69,10 +73,7 @@ public abstract class ManagedComponentInventory extends AbstractManagedEnvironme
     public abstract EnvironmentHost host();
 
     @Override
-    public abstract ItemStack[] items();
-
-    @Override
-    public abstract int getContainerSize();
+    public int getContainerSize() {return items().length;}
 
     // ----------------------------------------------------------------------- //
 
@@ -111,7 +112,66 @@ public abstract class ManagedComponentInventory extends AbstractManagedEnvironme
 
     @Override
     public void connectComponents() {
-        li.cil.oc.common.container.ComponentInventory.super.connectComponents();
+        // Managed component environments are allowed to query their host's world
+        // during construction/load (e.g. TextBuffer, Trading Upgrade). Block
+        // entities are deserialized before Minecraft attaches their Level, so
+        // defer component construction until the host is actually live.
+        if (host().getEnvironmentLevel() == null) {
+            return;
+        }
+
+        int limit = Math.min(getContainerSize(), componentSlots().length);
+        for (int slot = 0; slot < limit; slot++) {
+            ItemStack stack = getItem(slot); // Or items()[slot] depending on your container implementation
+            Option<ManagedEnvironment> currentSlot = componentSlots()[slot];
+
+            if (!stack.isEmpty() && (currentSlot == null || currentSlot.isEmpty()) && isComponentSlot(slot, stack)) {
+                DriverItem driver = Driver.driverFor(stack);
+                if (driver != null) {
+                    ManagedEnvironment component = driver.createEnvironment(stack, host());
+                    if (component != null) {
+                        applyLifecycleState(component, Lifecycle.LifecycleState.Constructing);
+                        try {
+                            // Restore node identity first. Old OC treated oc:node as part
+                            // of the component inventory contract; in the Data Component
+                            // port the equivalent is OCComponents.ADDRESS on the stack.
+                            // Do this explicitly so a component override cannot
+                            // accidentally regenerate its address by omitting super.
+                            load(component, driver, stack);
+                        } catch (Throwable e) {
+                            OpenComputers.log().warn(
+                                    String.format("An item component of type '%s' (provided by driver '%s') threw an error while loading.",
+                                            component.getClass().getName(), driver.getClass().getName()),
+                                    e
+                            );
+                        }
+
+                        if (component.canUpdate()) {
+                            assert !updatingComponents().contains(component);
+                            updatingComponents().$plus$eq(component);
+                        }
+
+                        componentSlots()[slot] = Option.apply(component);
+                    } else {
+                        componentSlots()[slot] = Option.empty();
+                    }
+                } else {
+                    componentSlots()[slot] = Option.empty();
+                }
+            }
+        }
+
+        // Make sure our node is connected.
+        //Network.joinNewNetwork(node());
+
+        for (Option<ManagedEnvironment> slotOpt : componentSlots()) {
+            if (slotOpt != null && slotOpt.isDefined()) {
+                ManagedEnvironment component = slotOpt.get();
+                applyLifecycleState(component, Lifecycle.LifecycleState.Initializing);
+                connectItemNode(component.node());
+                applyLifecycleState(component, Lifecycle.LifecycleState.Initialized);
+            }
+        }
     }
 
     @Override

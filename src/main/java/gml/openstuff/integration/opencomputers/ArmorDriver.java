@@ -5,6 +5,7 @@ import gml.openstuff.OpenStuff;
 import gml.openstuff.container.ManagedComponentInventory;
 import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
+import li.cil.oc.api.network.Node;
 import li.cil.oc.api.prefab.DriverItem;
 import li.cil.oc.common.item.data.TabletData;
 import net.minecraft.core.component.DataComponentHolder;
@@ -60,8 +61,6 @@ public class ArmorDriver extends DriverItem {
 
         @Override
         public ItemStack[] items() { return data.items();}
-        @Override
-        public int getContainerSize() {return items().length;}
 
         @Override
         public boolean stillValid(@NotNull Player player) {
@@ -78,6 +77,12 @@ public class ArmorDriver extends DriverItem {
         public void saveData(MutableDataComponentHolder holder) {
             data.saveData(holder);
             super.saveData(holder);
+        }
+
+        // connect the component directly to the wrapper.
+        @Override
+        public void connectItemNode(Node node) {
+            this.wrapper.connectItemNode(node);
         }
     }
 }

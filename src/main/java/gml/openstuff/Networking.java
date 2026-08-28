@@ -1,7 +1,6 @@
 package gml.openstuff;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -14,6 +13,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import org.jetbrains.annotations.NotNull;
 
 
 public class Networking {
@@ -41,7 +41,7 @@ public class Networking {
         );
 
         @Override
-        public CustomPacketPayload.Type<MachineStatePayload> type() {
+        public CustomPacketPayload.@NotNull Type<MachineStatePayload> type() {
             return TYPE;
         }
     }
@@ -74,9 +74,7 @@ public class Networking {
                         // Send interaction request back to the client player
                         PacketDistributor.sendToPlayer(player, new MachineStatePayload(stack, MachineStatePayload.State.REQUEST_INTERACTION));
                     }
-                    case REQUEST_STATE -> {
-                        sendServerState(player, stack, wrapper.machine().isRunning());
-                    }
+                    case REQUEST_STATE -> sendServerState(player, stack, wrapper.machine().isRunning());
                     default -> {}
                 }
             }
