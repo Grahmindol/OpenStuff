@@ -1,6 +1,8 @@
 package gml.openstuff;
 
 import com.google.common.collect.Iterables;
+import gml.openstuff.data.MachineData;
+import gml.openstuff.data.PieceData;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
 import li.cil.oc.api.UnrecoverablePersistanceException;
 import li.cil.oc.api.internal.TextBuffer;
@@ -9,9 +11,7 @@ import li.cil.oc.api.machine.MachineHost;
 import gml.openstuff.container.ComponentInventory;
 import li.cil.oc.api.network.Connector;
 import li.cil.oc.api.network.EnvironmentHost;
-import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
-import li.cil.oc.common.item.data.TabletData;
 import li.cil.oc.util.RotationHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
@@ -19,13 +19,11 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
-import scala.Option;
 
 import java.util.Arrays;
 
@@ -38,9 +36,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     private li.cil.oc.api.machine.Machine machine;
 
-    // we will use it to soter our data
-    public TabletData data = new TabletData();
-
+    public MachineData data = new MachineData();
 
     public boolean isInitialized = false;
     public boolean isDirty = true;
@@ -105,8 +101,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public ItemStack[] items() {
-        ItemStack[] result = Iterables.toArray(Iterables.concat(player.getHandSlots(), player.getArmorAndBodyArmorSlots()), ItemStack.class);
-        return result;
+        return Iterables.toArray(Iterables.concat(player.getHandSlots(), player.getArmorAndBodyArmorSlots()), ItemStack.class);
     }
 
     @Override
@@ -114,7 +109,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public Iterable<ItemStack> internalComponents() {
-        return Arrays.stream(data.items()).toList();
+        return Arrays.stream((new PieceData(stack)).items).toList();
     }
 
     @Override
@@ -183,13 +178,13 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public void  loadData(DataComponentHolder holder){
-        data.loadData(holder);
+        data.loadData(holder, player.registryAccess());
     }
 
     @Override
     public void  saveData(MutableDataComponentHolder holder){
         saveComponents();
-        data.saveData(holder);
+        data.saveData(holder, player.registryAccess());
     }
 
     // ----------------------------------------------------------------------- //
@@ -206,9 +201,9 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
             machine.update();
             updateComponents();
 
-            data.isRunning_$eq(machine.isRunning());
-            data.energy_$eq(connector.globalBuffer());
-            data.maxEnergy_$eq(connector.globalBufferSize());
+            data.isRunning = machine.isRunning();
+            data.energy = connector.globalBuffer();
+            data.maxEnergy =connector.globalBufferSize();
 
             if (lastRunning != machine.isRunning()) {
                 lastRunning = machine.isRunning();

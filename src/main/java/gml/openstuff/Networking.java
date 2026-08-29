@@ -92,7 +92,7 @@ public class Networking {
                     wrapper.interact(player.level(), player);
                 }
                 case RESPONSE_RUNNING, RESPONSE_STOPPED -> {
-                    wrapper.data.isRunning_$eq(payload.state() == MachineStatePayload.State.RESPONSE_RUNNING);
+                    wrapper.data.isRunning = (payload.state() == MachineStatePayload.State.RESPONSE_RUNNING);
 
                     if(!wrapper.isInitialized){
                         OpenStuff.LOGGER.info("Client wrapper init !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");

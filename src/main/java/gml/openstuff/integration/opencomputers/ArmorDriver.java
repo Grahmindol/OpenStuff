@@ -3,6 +3,7 @@ package gml.openstuff.integration.opencomputers;
 import gml.openstuff.ItemMachineWrapper;
 import gml.openstuff.OpenStuff;
 import gml.openstuff.container.ManagedComponentInventory;
+import gml.openstuff.data.PieceData;
 import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
@@ -38,7 +39,7 @@ public class ArmorDriver extends DriverItem {
     public static class Armor extends ManagedComponentInventory {
         public ItemStack stack;
         public ItemMachineWrapper wrapper;
-        public TabletData data = new TabletData();
+        public PieceData data = new PieceData();
 
         public Armor(ItemStack stack, ItemMachineWrapper wrapper){
             this.stack = stack;
@@ -60,7 +61,7 @@ public class ArmorDriver extends DriverItem {
         }
 
         @Override
-        public ItemStack[] items() { return data.items();}
+        public ItemStack[] items() { return data.items;}
 
         @Override
         public boolean stillValid(@NotNull Player player) {

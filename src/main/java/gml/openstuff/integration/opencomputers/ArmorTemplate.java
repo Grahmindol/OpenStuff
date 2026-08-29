@@ -1,14 +1,18 @@
 package gml.openstuff.integration.opencomputers;
 
 import gml.openstuff.OpenStuff;
+import gml.openstuff.data.MachineData;
+import gml.openstuff.data.PieceData;
 import li.cil.oc.api.driver.item.Slot;
 import li.cil.oc.api.machine.Architecture;
 import li.cil.oc.common.item.data.TabletData;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Arrays;
@@ -79,6 +83,9 @@ public class ArmorTemplate {
     }
 
     public static Object[] assemble(Container inventory) {
+        assert ServerLifecycleHooks.getCurrentServer() != null;
+        HolderLookup.Provider reg = ServerLifecycleHooks.getCurrentServer().registryAccess();
+
         ItemStack result = ItemStack.EMPTY;
         if(inventory.getItem(0).is(Items.NETHERITE_HELMET)){
             result = new ItemStack(OpenStuff.OPEN_HELMET);
@@ -90,13 +97,21 @@ public class ArmorTemplate {
             result = new ItemStack(OpenStuff.OPEN_BOOTS);
         }
 
-        TabletData data = new TabletData();
+        PieceData data = new PieceData();
         for (int i = 1; i < inventory.getContainerSize(); i++) {
             ItemStack stack = inventory.getItem(i);
-            data.items()[i] = stack;
+            data.items[i] = stack;
         }
-        data.container_$eq(inventory.getItem(1));
+
         data.saveData(result);
+
+        if(result.is(OpenStuff.OPEN_CHEST)){
+            MachineData machine_data = new MachineData();
+
+            machine_data.container = inventory.getItem(1);
+
+            machine_data.saveData(result, reg);
+        }
 
         return new Object[]{result, 0};
     }
