@@ -3,6 +3,9 @@ package gml.openstuff.integration.opencomputers;
 import gml.openstuff.OpenStuff;
 import gml.openstuff.data.MachineData;
 import gml.openstuff.data.PieceData;
+import li.cil.oc.Localization;
+import li.cil.oc.api.Driver;
+import li.cil.oc.api.driver.DriverItem;
 import li.cil.oc.api.driver.item.Slot;
 import li.cil.oc.api.machine.Architecture;
 import li.cil.oc.common.item.data.TabletData;
@@ -15,8 +18,15 @@ import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
+// Mainly inspired by
+// https://github.com/PC-Logix/OpenComputers/blob/main-MC1.21.1/src/main/scala/li/cil/oc/common/template/AssemblerTemplates.scala
+// https://github.com/PC-logix/OpenComputers/blob/main-MC1.21.1/src/main/scala/li/cil/oc/common/template/DroneTemplate.scala
+// under MIT Licence
 
 public class ArmorTemplate {
 
@@ -40,13 +50,24 @@ public class ArmorTemplate {
     public static Object[] validateHelmet(Container inventory) {
         boolean validate = hasTrim(inventory);
 
-        MutableComponent progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") : null;
+        int complexity = complexity(inventory);
+        int maxComplexity = maxComplexity(inventory);
 
-        MutableComponent[] warning = new MutableComponent[]{};
+        MutableComponent progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") :
+                (MutableComponent) Localization.Assembler$.MODULE$.Complexity(complexity, maxComplexity);
 
-        //TODO: add suggestions for Screen and KeyBoard
+        ArrayList<Component> warnings = new ArrayList<>();
 
-        return new Object[]{validate, progress, warning};
+        if(!hasScreen(inventory)){
+            warnings.add(Localization.Assembler$.MODULE$.Warning("Screen"));
+        }
+
+        if(!hasKeyboard(inventory)){
+            warnings.add(Localization.Assembler$.MODULE$.Warning("Keyboard"));
+        }
+
+        if(!warnings.isEmpty()) warnings.addFirst(Localization.Assembler$.MODULE$.Warnings());
+        return new Object[]{validate, progress, warnings.toArray(new Component[0])};
     }
 
     public static Object[] validateChestplate(Container inventory) {
@@ -55,31 +76,47 @@ public class ArmorTemplate {
         boolean hasTrim = hasTrim(inventory);
         boolean requireRAM = requireRAM(inventory);
 
+        int complexity = complexity(inventory);
+        int maxComplexity = maxComplexity(inventory);
+
         boolean validate = hasTrim && hasCPU && (!requireRAM || hasRAM);
 
-        MutableComponent progress = (!hasCPU) ? Component.translatable("gui.Assembler.InsertCPU") :
-                (!hasRAM && requireRAM) ? Component.translatable("gui.Assembler.InsertRAM") :
-                        (!hasTrim) ? Component.translatable("gui.Assembler.InsertTrim") : null;
+        Component progress = (!hasCPU) ? Localization.Assembler$.MODULE$.InsertCPU() :
+                (!hasRAM && requireRAM) ? Localization.Assembler$.MODULE$.InsertRAM() :
+                        (!hasTrim) ? Component.translatable("gui.Assembler.InsertTrim") :
+                                Localization.Assembler$.MODULE$.Complexity(complexity, maxComplexity);
 
-        MutableComponent[] warning = new MutableComponent[]{};
+        ArrayList<Component> warnings = new ArrayList<>();
 
         //TODO: add suggestions for BIOS, HDD, FileSystem, GPU
-
-        return new Object[]{true};
+        if(!warnings.isEmpty()) warnings.addFirst(Localization.Assembler$.MODULE$.Warnings());
+        return new Object[]{validate, progress, warnings.toArray(new Component[0])};
     }
 
     public static Object[] validateLeggings(Container inventory) {
         boolean validate = hasTrim(inventory);
-        MutableComponent progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") : null;
-        MutableComponent[] warning = new MutableComponent[]{};
-        return new Object[]{validate, progress, warning};
+        int complexity = complexity(inventory);
+        int maxComplexity = maxComplexity(inventory);
+        Component progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") :
+                Localization.Assembler$.MODULE$.Complexity(complexity, maxComplexity);
+
+        ArrayList<Component> warnings = new ArrayList<>();
+
+        if(!warnings.isEmpty()) warnings.addFirst(Localization.Assembler$.MODULE$.Warnings());
+        return new Object[]{validate, progress, warnings.toArray(new Component[0])};
     }
 
     public static Object[] validateBoots(Container inventory) {
         boolean validate = hasTrim(inventory);
-        MutableComponent progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") : null;
-        MutableComponent[] warning = new MutableComponent[]{};
-        return new Object[]{validate, progress, warning};
+        int complexity = complexity(inventory);
+        int maxComplexity = maxComplexity(inventory);
+        Component progress = (!validate) ? Component.translatable("gui.Assembler.InsertTrim") :
+                Localization.Assembler$.MODULE$.Complexity(complexity, maxComplexity);
+
+        ArrayList<Component> warnings = new ArrayList<>();
+
+        if(!warnings.isEmpty()) warnings.addFirst(Localization.Assembler$.MODULE$.Warnings());
+        return new Object[]{validate, progress, warnings.toArray(new Component[0])};
     }
 
     public static Object[] assemble(Container inventory) {
@@ -198,31 +235,35 @@ public class ArmorTemplate {
         );
     }
 
-    private static boolean hasCPU(Container inventory){
-        for (int i = 0; i < inventory.getContainerSize(); i++){
+    private static <T> boolean hasDriver(Container inventory, Class<T> driverClass) {
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
             ItemStack stack = inventory.getItem(i);
-            if (li.cil.oc.api.Driver.driverFor(stack, ArmorHost.class) instanceof li.cil.oc.api.driver.item.Processor)
+            Object driver = li.cil.oc.api.Driver.driverFor(stack, ArmorHost.class);
+            if (driverClass.isInstance(driver)) {
                 return true;
+            }
         }
         return false;
+    }
+
+    private static boolean hasCPU(Container inventory){
+        return hasDriver(inventory, li.cil.oc.api.driver.item.Processor.class);
     }
 
     private static boolean hasRAM(Container inventory){
-        for (int i = 0; i < inventory.getContainerSize(); i++){
-            ItemStack stack = inventory.getItem(i);
-            if (li.cil.oc.api.Driver.driverFor(stack, ArmorHost.class) instanceof li.cil.oc.api.driver.item.Memory)
-                return true;
-        }
-        return false;
+        return hasDriver(inventory, li.cil.oc.api.driver.item.Memory.class);
     }
 
     private static boolean hasTrim(Container inventory){
-        for (int i = 0; i < inventory.getContainerSize(); i++){
-            ItemStack stack = inventory.getItem(i);
-            if (li.cil.oc.api.Driver.driverFor(stack, ArmorHost.class) instanceof TrimDriver)
-                return true;
-        }
-        return false;
+        return hasDriver(inventory, gml.openstuff.integration.opencomputers.TrimDriver.class);
+    }
+
+    private static boolean hasScreen(Container inventory){
+        return hasDriver(inventory, li.cil.oc.integration.opencomputers.DriverScreen$.class);
+    }
+
+    private static boolean hasKeyboard(Container inventory){
+        return hasDriver(inventory, li.cil.oc.integration.opencomputers.DriverKeyboard$.class);
     }
 
     private static boolean requireRAM(Container inventory){
@@ -236,5 +277,19 @@ public class ArmorTemplate {
         return false;
     }
 
+    private static int complexity(Container inventory){
+        int acc = 0;
+        for (int slot = 1; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            DriverItem driver = Driver.driverFor(stack, ArmorHost.class);
+            acc += (driver == null) ? 1 : 1 + driver.tier(stack);
+        }
+        return acc;
+    }
 
+    private static int maxComplexity(Container inventory){
+        int acc = 100;
+        // TODO : compute it
+        return acc;
+    }
 }
