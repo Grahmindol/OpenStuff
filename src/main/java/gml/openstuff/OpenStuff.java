@@ -1,25 +1,41 @@
 package gml.openstuff;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import gml.openstuff.client.renderer.ArmorComponentLayer;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
 import gml.openstuff.integration.opencomputers.ArmorTemplate;
 import gml.openstuff.integration.opencomputers.TrimDriver;
+import gml.openstuff.integration.openstuff.TrimDriverRenderer;
 import gml.openstuff.item.OpenBoots;
 import gml.openstuff.item.OpenChestplate;
 import gml.openstuff.item.OpenHelmet;
 import gml.openstuff.item.OpenLeggings;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.HumanoidArmorModel;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
@@ -55,6 +71,10 @@ public final class OpenStuff {
         modBus.addListener(OpenStuff::commonSetup);
         modBus.addListener(OpenStuff::onRegisterKeyMappings);
         modBus.addListener(Networking::register);
+
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            modBus.addListener(this::onAddLayers);
+        }
     }
 
 
@@ -64,6 +84,8 @@ public final class OpenStuff {
             li.cil.oc.api.Driver.add(new TrimDriver());
             li.cil.oc.api.Driver.add(new ArmorDriver());
         });
+
+        gml.openstuff.client.renderer.ArmorComponentLayer.add(new TrimDriverRenderer());
     }
 
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event){
@@ -91,6 +113,27 @@ public final class OpenStuff {
                 ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
                 wrapper.update(player.level(), player);
             }
+        }
+    }
+
+
+    public void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        EntityModelSet models = event.getEntityModels();
+
+        PlayerRenderer wideRenderer = event.getSkin(PlayerSkin.Model.WIDE);
+        if (wideRenderer != null) {
+            HumanoidArmorModel<AbstractClientPlayer> innerModel = new HumanoidArmorModel<>(models.bakeLayer(ModelLayers.PLAYER_INNER_ARMOR));
+            HumanoidArmorModel<AbstractClientPlayer> outerModel = new HumanoidArmorModel<>(models.bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR));
+
+            wideRenderer.addLayer(new ArmorComponentLayer<>(wideRenderer, innerModel, outerModel));
+        }
+
+        PlayerRenderer slimRenderer = event.getSkin(PlayerSkin.Model.SLIM);
+        if (slimRenderer != null) {
+            HumanoidArmorModel<AbstractClientPlayer> slimInnerModel = new HumanoidArmorModel<>(models.bakeLayer(ModelLayers.PLAYER_SLIM_INNER_ARMOR));
+            HumanoidArmorModel<AbstractClientPlayer> slimOuterModel = new HumanoidArmorModel<>(models.bakeLayer(ModelLayers.PLAYER_SLIM_OUTER_ARMOR));
+
+            slimRenderer.addLayer(new ArmorComponentLayer<>(slimRenderer, slimInnerModel, slimOuterModel));
         }
     }
 }

@@ -8,7 +8,6 @@ import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
 import li.cil.oc.api.prefab.DriverItem;
-import li.cil.oc.common.item.data.TabletData;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -40,10 +39,12 @@ public class ArmorDriver extends DriverItem {
         public ItemStack stack;
         public ItemMachineWrapper wrapper;
         public PieceData data = new PieceData();
+        private ArmorHost host;
 
         public Armor(ItemStack stack, ItemMachineWrapper wrapper){
             this.stack = stack;
             this.wrapper = wrapper;
+            this.host = new ArmorHost(wrapper, wrapper.player.getEquipmentSlotForItem(stack));
 
             setNode(li.cil.oc.api.Network.newNode(this, li.cil.oc.api.network.Visibility.Network).
                     withComponent("armor").
@@ -51,7 +52,7 @@ public class ArmorDriver extends DriverItem {
         }
 
         @Override
-        public EnvironmentHost host() { return wrapper;}
+        public EnvironmentHost host() { return this.host;}
 
 
         @Override
