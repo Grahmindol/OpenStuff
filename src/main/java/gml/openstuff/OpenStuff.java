@@ -12,12 +12,15 @@ import gml.openstuff.item.OpenChestplate;
 import gml.openstuff.item.OpenHelmet;
 import gml.openstuff.item.OpenLeggings;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.model.ArmorStandArmorModel;
 import net.minecraft.client.model.HumanoidArmorModel;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.ArmorStandRenderer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.api.distmarker.Dist;
@@ -97,6 +100,13 @@ public final class OpenStuff {
             HumanoidArmorModel<AbstractClientPlayer> slimOuterModel = new HumanoidArmorModel<>(models.bakeLayer(ModelLayers.PLAYER_SLIM_OUTER_ARMOR));
 
             slimRenderer.addLayer(new ArmorComponentLayer<>(slimRenderer, slimInnerModel, slimOuterModel));
+        }
+
+        ArmorStandRenderer armorStandRenderer = event.getRenderer(EntityType.ARMOR_STAND);
+        if (armorStandRenderer != null) {
+            ArmorStandArmorModel innerArmorStand = new ArmorStandArmorModel(models.bakeLayer(ModelLayers.ARMOR_STAND_INNER_ARMOR));
+            ArmorStandArmorModel outerArmorStand = new ArmorStandArmorModel(models.bakeLayer(ModelLayers.ARMOR_STAND_OUTER_ARMOR));
+            armorStandRenderer.addLayer(new ArmorComponentLayer<>(armorStandRenderer, innerArmorStand, outerArmorStand));
         }
     }
 }

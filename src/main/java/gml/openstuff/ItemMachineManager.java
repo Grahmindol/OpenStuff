@@ -135,7 +135,7 @@ public class ItemMachineManager {
 
     @SubscribeEvent
     private static void onEntityTick(EntityTickEvent.Pre e){
-        if (e.getEntity() instanceof Player player){
+        if (e.getEntity() instanceof LivingEntity player){
             ItemStack stack = player.getItemBySlot(EquipmentSlot.CHEST);
             if(stack.is(OpenStuff.OPEN_CHEST.get())){
                 ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
@@ -146,6 +146,39 @@ public class ItemMachineManager {
 
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        if(!Objects.equals(getOrCreateId(event.getTo()), getOrCreateId((event.getFrom())))) return;
+
+
+        if(event.getSlot() == EquipmentSlot.CHEST){
+            if(event.getFrom().is(OpenStuff.OPEN_CHEST)){
+                String id = getOrCreateId(event.getFrom());
+                ItemMachineWrapper wrapper = SERVER.cache.getIfPresent(id);
+                if(wrapper != null){
+                    wrapper.machine().stop();
+                    wrapper.writeToNBT(event.getEntity().registryAccess());
+                    wrapper.autoSave = false;
+                    SERVER.cache.invalidate(id);
+                    SERVER.cache.cleanUp();
+                }
+            }
+        }
+
+        String id = getOrCreateId(event.getEntity().getItemBySlot(EquipmentSlot.CHEST));
+        ItemMachineWrapper wrapper = SERVER.cache.getIfPresent(id);
+
+        if(wrapper != null){
+            String newChecksum = getChecksum(event.getEntity());
+
+            // may occur on player world join.
+            if(Objects.equals(wrapper.checksum, newChecksum)) return;
+
+            /*wrapper.onItemRemoved(event.getSlot(), event.getFrom());
+            wrapper.onItemAdded(event.getSlot(), event.getTo());
+
+            // TODO : What if multiple change at same time ?
+            wrapper.checksum = newChecksum;*/
+        }
+
         // TODO use this to add and remove items dynamically
         // we got some issue with loading because all equipment are added for the first time, but the ey already are in the wrapper...
 
@@ -184,6 +217,7 @@ public class ItemMachineManager {
                 if (holder.level().isClientSide) {
                     ItemMachineWrapper weak = getWeak(stack);
                     if (weak != null && weak.isInitialized) {
+                        // TODO: add LivingEntity inventory tracker.
                         if (holder instanceof Player player) {
                             int timesChanged = player.getInventory().getTimesChanged();
                             if (timesChanged != weak.timesChanged) {
@@ -205,9 +239,7 @@ public class ItemMachineManager {
                 }
 
                 if (!getChecksum(holder).equals(wrapper.checksum) || holder.level() != wrapper.getEnvironmentLevel()) {
-                    if (holder instanceof Player player) {
-                        wrapper.writeToNBT(player.registryAccess());
-                    }
+                    wrapper.writeToNBT(holder.registryAccess());
                     wrapper.autoSave = false;
                     cache.invalidate(id);
                     cache.cleanUp();
@@ -223,26 +255,16 @@ public class ItemMachineManager {
                 currentHolder = null;
 
                 wrapper.stack = stack;
-                if (holder instanceof Player player) {
-                    wrapper.player = player;
-                }
+                wrapper.player = holder;
+
                 return wrapper;
             }
         }
 
         @Override
         public ItemMachineWrapper call() {
-            if (currentHolder instanceof Player player) {
-                // Return a concrete subclass instance if ItemMachineWrapper is abstract
-                return createWrapper(currentStack, player);
-            }
-            return null;
-        }
-
-        /** Override this method if you have concrete subclasses (e.g., TabletWrapper) */
-        protected ItemMachineWrapper createWrapper(ItemStack stack, Player player) {
-            ItemMachineWrapper wrapper = new ItemMachineWrapper(stack, player);
-            wrapper.checksum = getChecksum(player);
+            ItemMachineWrapper wrapper = new ItemMachineWrapper(currentStack, currentHolder);
+            wrapper.checksum = getChecksum(currentHolder);
             return wrapper;
         }
 
@@ -319,8 +341,7 @@ public class ItemMachineManager {
             return 10L;
         }
 
-        public void save(LivingEntity entity) {
-            if (!(entity instanceof Player player)) return;
+        public void save(LivingEntity player) {
             synchronized (cache) {
                 for (ItemMachineWrapper wrapper : cache.asMap().values()) {
                     if (wrapper.player == player) {
