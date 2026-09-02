@@ -135,7 +135,7 @@ public class ItemMachineManager {
 
     @SubscribeEvent
     private static void onEntityTick(EntityTickEvent.Pre e){
-        if (e.getEntity() instanceof LivingEntity player){
+        if (e.getEntity() instanceof Player player){
             ItemStack stack = player.getItemBySlot(EquipmentSlot.CHEST);
             if(stack.is(OpenStuff.OPEN_CHEST.get())){
                 ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);

@@ -5,6 +5,7 @@ import gml.openstuff.client.renderer.ArmorComponentLayer;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
 import gml.openstuff.integration.opencomputers.ArmorTemplate;
 import gml.openstuff.integration.opencomputers.TrimDriver;
+import gml.openstuff.integration.openstuff.ProcessorDriverRenderer;
 import gml.openstuff.integration.openstuff.TrimDriverRenderer;
 import gml.openstuff.item.OpenBoots;
 import gml.openstuff.item.OpenChestplate;
@@ -72,6 +73,7 @@ public final class OpenStuff {
         });
 
         gml.openstuff.client.renderer.ArmorComponentLayer.add(new TrimDriverRenderer());
+        gml.openstuff.client.renderer.ArmorComponentLayer.add(new ProcessorDriverRenderer());
     }
 
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event){
