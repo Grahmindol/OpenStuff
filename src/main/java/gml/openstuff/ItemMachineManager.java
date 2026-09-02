@@ -4,12 +4,14 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.ImmutableMap;
+import gml.openstuff.item.OpenArmorPiece;
 import li.cil.oc.api.network.Node;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -18,15 +20,14 @@ import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,6 +62,9 @@ public class ItemMachineManager {
     }
 
     private static String getOrCreateId(ItemStack stack) {
+        // all non-open stuff items are the same for us.
+        if(!(stack.getItem() instanceof OpenArmorPiece)) return "none";
+
         AtomicReference<String> id = new AtomicReference<>();
         CustomData.update(DataComponents.CUSTOM_DATA, stack, data -> {
             if (!data.contains("openstuff_machine_id", Tag.TAG_STRING)) {
@@ -69,6 +73,14 @@ public class ItemMachineManager {
             id.set(data.getString("openstuff_machine_id"));
         });
         return id.get();
+    }
+
+    private static String getChecksum(LivingEntity _player){
+        StringBuilder result = new StringBuilder();
+        for(ItemStack stack : _player.getArmorAndBodyArmorSlots()){
+            result.append(getOrCreateId(stack));
+        }
+        return result.toString();
     }
 
     // -------------------------------------------------------------- //
@@ -102,12 +114,44 @@ public class ItemMachineManager {
                 SERVER.keepAlive();
             }
         }
+
+        //-----------------------------------------------------
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && mc.level != null) {
+            while (OpenStuff.AROMOR_INTERACT_KEY.consumeClick()) {
+                if (mc.screen == null) {
+                    ItemStack stack = mc.player.getItemBySlot(EquipmentSlot.CHEST);
+                    if(stack.is(OpenStuff.OPEN_CHEST.get())) Networking.askServerInteraction(stack);
+                }
+            }
+        }
     }
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Pre e) {
         SERVER.cleanUp();
     }
+
+    @SubscribeEvent
+    private static void onEntityTick(EntityTickEvent.Pre e){
+        if (e.getEntity() instanceof LivingEntity player){
+            ItemStack stack = player.getItemBySlot(EquipmentSlot.CHEST);
+            if(stack.is(OpenStuff.OPEN_CHEST.get())){
+                ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
+                wrapper.update(player.level(), player);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        // TODO use this to add and remove items dynamically
+        // we got some issue with loading because all equipment are added for the first time, but the ey already are in the wrapper...
+
+        // so I used checksum to reset cache is needed, this methode will have to update the checksum.
+    }
+
 
     // -------------------------------------------------------------- //
 
@@ -160,7 +204,7 @@ public class ItemMachineManager {
                     throw new RuntimeException("Failed to load machine wrapper from cache", ex);
                 }
 
-                if (holder.level() != wrapper.getEnvironmentLevel()) {
+                if (!getChecksum(holder).equals(wrapper.checksum) || holder.level() != wrapper.getEnvironmentLevel()) {
                     if (holder instanceof Player player) {
                         wrapper.writeToNBT(player.registryAccess());
                     }
@@ -197,7 +241,9 @@ public class ItemMachineManager {
 
         /** Override this method if you have concrete subclasses (e.g., TabletWrapper) */
         protected ItemMachineWrapper createWrapper(ItemStack stack, Player player) {
-            return new ItemMachineWrapper(stack, player) {};
+            ItemMachineWrapper wrapper = new ItemMachineWrapper(stack, player);
+            wrapper.checksum = getChecksum(player);
+            return wrapper;
         }
 
         @Override
@@ -238,9 +284,9 @@ public class ItemMachineManager {
             }
         }
 
-        public ImmutableMap<String, ItemMachineWrapper> keepAlive() {
+        public void keepAlive() {
             synchronized (cache) {
-                return ImmutableMap.copyOf(cache.getAllPresent(cache.asMap().keySet()));
+                ImmutableMap.copyOf(cache.getAllPresent(cache.asMap().keySet()));
             }
         }
     }
@@ -256,22 +302,9 @@ public class ItemMachineManager {
 
         @Override
         public ItemMachineWrapper getWeak(ItemStack stack) {
-            String key = getId(stack);
-            if (key != null && !key.isEmpty()) {
-                Map<String, ItemMachineWrapper> map = cache.asMap();
-                if (map.containsKey(key)) {
-                    return map.get(key);
-                }
-            }
-            return null;
-        }
-
-        public ItemMachineWrapper get(ItemStack stack) {
             String id = getId(stack);
             if (id != null && !id.isEmpty()) {
-                synchronized (cache) {
-                    return cache.getIfPresent(id);
-                }
+                return cache.getIfPresent(id);
             }
             return null;
         }

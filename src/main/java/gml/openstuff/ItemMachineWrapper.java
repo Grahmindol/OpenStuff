@@ -4,7 +4,12 @@ import com.google.common.collect.Iterables;
 import gml.openstuff.data.MachineData;
 import gml.openstuff.data.PieceData;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
+import gml.openstuff.integration.opencomputers.ArmorHost;
+import li.cil.oc.api.Driver;
 import li.cil.oc.api.UnrecoverablePersistanceException;
+import li.cil.oc.api.driver.DriverItem;
+import li.cil.oc.api.driver.item.Container;
+import li.cil.oc.api.driver.item.Slot;
 import li.cil.oc.api.internal.TextBuffer;
 import li.cil.oc.api.machine.Machine;
 import li.cil.oc.api.machine.MachineHost;
@@ -19,6 +24,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -32,6 +38,8 @@ import static gml.openstuff.Networking.sendServerState;
 public class ItemMachineWrapper extends ComponentInventory implements MachineHost, li.cil.oc.api.internal.Tablet {
     public ItemStack stack;
     public LivingEntity player;
+
+    public String checksum;
 
 
     private li.cil.oc.api.machine.Machine machine;
@@ -104,12 +112,25 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         return Iterables.toArray(Iterables.concat(player.getHandSlots(), player.getArmorAndBodyArmorSlots()), ItemStack.class);
     }
 
+    private static int getIndexForEquipment(EquipmentSlot slot){
+        return slot.getIndex(slot.isArmor() ? 2 : 0);
+    }
+
+    public void onItemRemoved(EquipmentSlot slot, ItemStack stack){
+        this.onItemRemoved(getIndexForEquipment(slot), stack);
+    }
+
+    public void onItemAdded(EquipmentSlot slot, ItemStack stack){
+        this.onItemAdded(getIndexForEquipment(slot), stack);
+    }
+
     @Override
     public int getContainerSize() { return this.items().length; }
 
     @Override
     public Iterable<ItemStack> internalComponents() {
-        return Arrays.stream((new PieceData(stack)).items).toList();
+        PieceData chest = new PieceData(stack);
+        return Arrays.stream(chest.items).toList();
     }
 
     @Override
@@ -122,10 +143,10 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         if (node == this.node()) {
             connectComponents();
 
-            if(!isInitialized){
+            /*if(!isInitialized){
                 sendServerState((ServerPlayer) player, stack, machine().isRunning());
                 isInitialized = true;
-            }
+            }*/
         }
     }
 
@@ -192,7 +213,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     public void update(Level level, LivingEntity player){
         this.player = player;
-        //if(! this.isInitialized) return;
 
         if (!level.isClientSide) {
             Connector connector = ((Connector)this.machine().node());
@@ -225,12 +245,37 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         }
     }
 
+    // --------------------------------------------------------- //
+
+    private String containerSlotType(){
+        if (data.container.isEmpty()) return Slot.None;
+        DriverItem driver = Driver.driverFor(data.container, ArmorHost.class);
+        if( driver instanceof Container cont)
+            return cont.providedSlot(data.container);
+        return Slot.None;
+    }
+
+    private int containerSlotTier() {
+        if (data.container.isEmpty()) return -1;
+        DriverItem driver = Driver.driverFor(data.container, ArmorHost.class);
+        if( driver instanceof Container cont)
+            return cont.providedTier(data.container);
+        return -1;
+    }
+
+    // --------------------------------------------------------- //
+
     public void interact(Level level, Player player){
         if (player.isSecondaryUseActive()) {
             if (!level.isClientSide) {
                 if (player instanceof ServerPlayer){
                     // TODO: make a custon GUI
-                    //MenuTypes.openTabletGui((ServerPlayer)player, this);
+                    /*player.openMenu(this, buff -> {
+                        ItemStack.STREAM_CODEC.encode(buff, this.stack);
+                        buff.writeVarInt(this.getContainerSize());
+                        buff.writeUtf(this.containerSlotType(), 32);
+                        buff.writeVarInt(this.containerSlotTier());
+                    });*/
                 }
             }
         }

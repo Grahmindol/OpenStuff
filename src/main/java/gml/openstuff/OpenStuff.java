@@ -11,34 +11,21 @@ import gml.openstuff.item.OpenChestplate;
 import gml.openstuff.item.OpenHelmet;
 import gml.openstuff.item.OpenLeggings;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidArmorModel;
-import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.lwjgl.glfw.GLFW;
@@ -66,7 +53,6 @@ public final class OpenStuff {
 
 
     public OpenStuff(IEventBus modBus) {
-        NeoForge.EVENT_BUS.register(this);
         ITEMS.register(modBus);
         modBus.addListener(OpenStuff::commonSetup);
         modBus.addListener(OpenStuff::onRegisterKeyMappings);
@@ -91,31 +77,6 @@ public final class OpenStuff {
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event){
         event.register(AROMOR_INTERACT_KEY);
     }
-
-    @SubscribeEvent
-    private void onClientTick(ClientTickEvent.Pre e){
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && mc.level != null) {
-            while (AROMOR_INTERACT_KEY.consumeClick()) {
-                if (mc.screen == null) {
-                    ItemStack stack = mc.player.getItemBySlot(EquipmentSlot.CHEST);
-                    if(stack.is(OPEN_CHEST.get())) Networking.askServerInteraction(stack);
-                }
-            }
-        }
-    }
-
-    @SubscribeEvent
-    private void onEntityTick(EntityTickEvent.Pre e){
-        if (e.getEntity() instanceof LivingEntity player){
-            ItemStack stack = player.getItemBySlot(EquipmentSlot.CHEST);
-            if(stack.is(OPEN_CHEST.get())){
-                ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
-                wrapper.update(player.level(), player);
-            }
-        }
-    }
-
 
     public void onAddLayers(EntityRenderersEvent.AddLayers event) {
         EntityModelSet models = event.getEntityModels();
