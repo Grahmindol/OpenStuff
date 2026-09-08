@@ -1,5 +1,4 @@
 package gml.openstuff;
-import gml.openstuff.integration.opencomputers.ArmorDriver;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -87,25 +86,11 @@ public class Networking {
 
             switch (payload.state()) {
                 case REQUEST_INTERACTION -> {
-                    wrapper.update(player.level(), player);
                     // Execute client-side interaction
                     wrapper.interact(player.level(), player);
                 }
                 case RESPONSE_RUNNING, RESPONSE_STOPPED -> {
                     wrapper.data.isRunning = (payload.state() == MachineStatePayload.State.RESPONSE_RUNNING);
-
-                    if(!wrapper.isInitialized){
-                        OpenStuff.LOGGER.info("Client wrapper init !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
-                        wrapper.connectComponents();
-
-                        for (var slot : wrapper.componentSlots()) {
-                            if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
-                                piece.connectComponents();
-                            }
-                        }
-                        wrapper.isInitialized = true;
-                    }
                 }
                 default -> {}
             }

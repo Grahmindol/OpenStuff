@@ -44,7 +44,7 @@ public class ArmorDriver extends DriverItem {
         public Armor(ItemStack stack, ItemMachineWrapper wrapper){
             this.stack = stack;
             this.wrapper = wrapper;
-            this.host = new ArmorHost(wrapper, wrapper.player.getEquipmentSlotForItem(stack));
+            this.host = new ArmorHost(wrapper, wrapper.holder.getEquipmentSlotForItem(stack));
 
             setNode(li.cil.oc.api.Network.newNode(this, li.cil.oc.api.network.Visibility.Network).
                     withComponent("armor").

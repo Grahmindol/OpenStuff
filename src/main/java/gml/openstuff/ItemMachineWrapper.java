@@ -37,7 +37,7 @@ import static gml.openstuff.Networking.sendServerState;
 
 public class ItemMachineWrapper extends ComponentInventory implements MachineHost, li.cil.oc.api.internal.Tablet {
     public ItemStack stack;
-    public LivingEntity player;
+    public LivingEntity holder;
 
     public String checksum;
 
@@ -54,14 +54,24 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
     private boolean lastRunning = false;
     public boolean autoSave = true;
 
-    public ItemMachineWrapper(ItemStack _stack, LivingEntity _player){
+    public ItemMachineWrapper(ItemStack _stack, LivingEntity _holder){
         stack = _stack;
-        player = _player;
+        holder = _holder;
 
-        readFromNBT(player.registryAccess());
+        readFromNBT(holder.registryAccess());
         if (!getEnvironmentLevel().isClientSide) {
             li.cil.oc.api.Network.joinNewNetwork(machine.node());
-            writeToNBT(player.registryAccess());
+            writeToNBT(holder.registryAccess());
+            isInitialized = true;
+        } else {
+            connectComponents();
+
+            for (var slot : componentSlots()) {
+                if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
+                    piece.connectComponents();
+                }
+            }
+            isInitialized = true;
         }
     }
 
@@ -109,7 +119,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public ItemStack[] items() {
-        return Iterables.toArray(Iterables.concat(player.getHandSlots(), player.getArmorAndBodyArmorSlots()), ItemStack.class);
+        return Iterables.toArray(Iterables.concat(holder.getHandSlots(), holder.getArmorAndBodyArmorSlots()), ItemStack.class);
     }
 
     private static int getIndexForEquipment(EquipmentSlot slot){
@@ -185,65 +195,65 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
     // ----------------------------------------------------------------------- //
 
     @Override
-    public Level getEnvironmentLevel() { return player.level(); }
+    public Level getEnvironmentLevel() { return holder.level(); }
     @Override
-    public double xPosition() { return player.getX(); }
+    public double xPosition() { return holder.getX(); }
     @Override
-    public double yPosition() { return player.getY() + player.getEyeHeight(); }
+    public double yPosition() { return holder.getY() + holder.getEyeHeight(); }
     @Override
-    public double zPosition() { return player.getZ(); }
+    public double zPosition() { return holder.getZ(); }
     @Override
     public void markChanged() {}
 
     // ----------------------------------------------------------------------- //
 
     @Override
-    public void  loadData(DataComponentHolder holder){
-        data.loadData(holder, player.registryAccess());
+    public void  loadData(DataComponentHolder tag_holder){
+        data.loadData(tag_holder, holder.registryAccess());
     }
 
     @Override
-    public void  saveData(MutableDataComponentHolder holder){
+    public void  saveData(MutableDataComponentHolder tag_holder){
         saveComponents();
-        data.saveData(holder, player.registryAccess());
+        data.saveData(tag_holder, holder.registryAccess());
     }
 
     // ----------------------------------------------------------------------- //
 
 
-    public void update(Level level, LivingEntity player){
-        this.player = player;
+    public void update(){
 
-        if (!level.isClientSide) {
-            Connector connector = ((Connector)this.machine().node());
+        Connector connector = ((Connector)this.machine().node());
 
-            connector.changeBuffer(Double.POSITIVE_INFINITY);
-            machine.update();
-            updateComponents();
+        connector.changeBuffer(Double.POSITIVE_INFINITY);
+        machine.update();
+        updateComponents();
 
-            data.isRunning = machine.isRunning();
-            data.energy = connector.globalBuffer();
-            data.maxEnergy =connector.globalBufferSize();
+        data.isRunning = machine.isRunning();
+        data.energy = connector.globalBuffer();
+        data.maxEnergy =connector.globalBufferSize();
 
-            if (lastRunning != machine.isRunning()) {
-                lastRunning = machine.isRunning();
-                setChanged();
+        if (lastRunning != machine.isRunning()) {
+            lastRunning = machine.isRunning();
+            setChanged();
 
-                if (player instanceof ServerPlayer){
-                    sendServerState((ServerPlayer)player, stack, machine.isRunning());
-                }
+            if (this.holder instanceof ServerPlayer player){
+                sendServerState(player, stack, machine.isRunning());
+            }
 
-                if (machine.isRunning()) {
-                    for(Node node : machine.node().reachableNodes()){
-                        if(node.host() instanceof TextBuffer buffer){
-                            buffer.setPowerState(true);
-                            break;
-                        }
+            if (machine.isRunning()) {
+                for(Node node : machine.node().reachableNodes()){
+                    if(node.host() instanceof TextBuffer buffer){
+                        buffer.setPowerState(true);
+                        break;
                     }
                 }
             }
         }
     }
+
+
+
 
     // --------------------------------------------------------- //
 
@@ -316,7 +326,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public Direction facing() {
-        return RotationHelper.fromYaw(player.getYRot());
+        return RotationHelper.fromYaw(holder.getYRot());
     }
 
     @Override
@@ -331,6 +341,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     @Override
     public Player player() {
-        return (Player) this.player;
+        return (Player) this.holder;
     }
 }

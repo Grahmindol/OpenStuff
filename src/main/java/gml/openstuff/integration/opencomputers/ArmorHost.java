@@ -13,7 +13,7 @@ public class ArmorHost implements EnvironmentHost {
 
     public ArmorHost(ItemMachineWrapper wrapper, EquipmentSlot slot){
         this.wrapper = wrapper;
-        this.holder = wrapper.player;
+        this.holder = wrapper.holder;
         this.slot = slot;
     }
 

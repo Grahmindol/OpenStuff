@@ -38,6 +38,7 @@ public class ItemMachineManager {
     public static final ClientCache CLIENT = new ClientCache();
     public static final ServerCache SERVER = new ServerCache();
 
+
     public static ItemMachineWrapper get(ItemStack stack, LivingEntity holder) {
         if (holder.level().isClientSide) {
             return CLIENT.get(stack, holder);
@@ -107,13 +108,25 @@ public class ItemMachineManager {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Pre e) {
+
+        for (Map.Entry<String, ItemMachineWrapper> entry : SERVER.cache.asMap().entrySet()) {
+            ItemMachineWrapper wrapper = entry.getValue();
+            if(!getChecksum(wrapper.holder).equals(wrapper.checksum)){
+                wrapper.writeToNBT(wrapper.holder.registryAccess());
+                wrapper.autoSave = false;
+                CLIENT.cache.invalidate(entry.getKey());
+            }
+        }
+
         CLIENT.cleanUp();
         if (ServerLifecycleHooks.getCurrentServer() instanceof IntegratedServer) {
             if (Minecraft.getInstance().isPaused()) {
                 CLIENT.keepAlive();
-                SERVER.keepAlive();
             }
         }
+
+
+
 
         //-----------------------------------------------------
 
@@ -128,61 +141,58 @@ public class ItemMachineManager {
         }
     }
 
+
+    /**
+     * called on server each tick, we update each cached network.
+     */
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Pre e) {
         SERVER.cleanUp();
+
+        for (ItemMachineWrapper wrapper : SERVER.cache.asMap().values()) {
+            wrapper.update();
+        }
     }
 
+    /**
+     * Update holders on both sides
+     */
     @SubscribeEvent
-    private static void onEntityTick(EntityTickEvent.Pre e){
-        if (e.getEntity() instanceof LivingEntity player){
-            ItemStack stack = player.getItemBySlot(EquipmentSlot.CHEST);
-            if(stack.is(OpenStuff.OPEN_CHEST.get())){
-                ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
-                wrapper.update(player.level(), player);
+    private static void onEntityTick(EntityTickEvent.Pre e) {
+        if (e.getEntity() instanceof LivingEntity holder) {
+            ItemStack stack = holder.getItemBySlot(EquipmentSlot.CHEST);
+
+            if (stack.is(OpenStuff.OPEN_CHEST.get())) {
+                String id = getId(stack);
+
+                if (id != null) {
+                    Cache targetCache = holder.level().isClientSide() ? CLIENT : SERVER;
+                    ItemMachineWrapper wrapper = targetCache.cache.getIfPresent(id);
+
+                    if (wrapper != null) {
+                        wrapper.holder = holder;
+                    }
+                }
             }
         }
     }
 
+    /**
+     * when an openChest is equiped on server side, we create the wrapper.
+     */
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
         if(!Objects.equals(getOrCreateId(event.getTo()), getOrCreateId((event.getFrom())))) return;
 
+        ItemStack stack = event.getEntity().getItemBySlot(EquipmentSlot.CHEST);
 
-        if(event.getSlot() == EquipmentSlot.CHEST){
-            if(event.getFrom().is(OpenStuff.OPEN_CHEST)){
-                String id = getOrCreateId(event.getFrom());
-                ItemMachineWrapper wrapper = SERVER.cache.getIfPresent(id);
-                if(wrapper != null){
-                    wrapper.machine().stop();
-                    wrapper.writeToNBT(event.getEntity().registryAccess());
-                    wrapper.autoSave = false;
-                    SERVER.cache.invalidate(id);
-                    SERVER.cache.cleanUp();
-                }
-            }
-        }
-
-        String id = getOrCreateId(event.getEntity().getItemBySlot(EquipmentSlot.CHEST));
-        ItemMachineWrapper wrapper = SERVER.cache.getIfPresent(id);
-
-        if(wrapper != null){
+        if(stack.is(OpenStuff.OPEN_CHEST.get())){
+            ItemMachineWrapper wrapper = SERVER.get(stack, event.getEntity());
             String newChecksum = getChecksum(event.getEntity());
 
-            // may occur on player world join.
-            if(Objects.equals(wrapper.checksum, newChecksum)) return;
-
-            /*wrapper.onItemRemoved(event.getSlot(), event.getFrom());
-            wrapper.onItemAdded(event.getSlot(), event.getTo());
-
-            // TODO : What if multiple change at same time ?
-            wrapper.checksum = newChecksum;*/
+            wrapper.checksum = newChecksum;
         }
 
-        // TODO use this to add and remove items dynamically
-        // we got some issue with loading because all equipment are added for the first time, but the ey already are in the wrapper...
-
-        // so I used checksum to reset cache is needed, this methode will have to update the checksum.
     }
 
 
@@ -205,7 +215,11 @@ public class ItemMachineManager {
         }
 
         public ItemMachineWrapper getWeak(ItemStack stack) {
-            return null; // Overridden in ClientCache
+            String id = getId(stack);
+            if (id != null && !id.isEmpty()) {
+                return cache.getIfPresent(id);
+            }
+            return null;
         }
 
         public ItemMachineWrapper get(ItemStack stack, LivingEntity holder) {
@@ -238,24 +252,11 @@ public class ItemMachineManager {
                     throw new RuntimeException("Failed to load machine wrapper from cache", ex);
                 }
 
-                if (!getChecksum(holder).equals(wrapper.checksum) || holder.level() != wrapper.getEnvironmentLevel()) {
-                    wrapper.writeToNBT(holder.registryAccess());
-                    wrapper.autoSave = false;
-                    cache.invalidate(id);
-                    cache.cleanUp();
-
-                    try {
-                        wrapper = cache.get(id, this);
-                    } catch (Exception ex) {
-                        throw new RuntimeException("Failed to reload machine wrapper", ex);
-                    }
-                }
-
                 currentStack = null;
                 currentHolder = null;
 
                 wrapper.stack = stack;
-                wrapper.player = holder;
+                wrapper.holder = holder;
 
                 return wrapper;
             }
@@ -263,6 +264,11 @@ public class ItemMachineManager {
 
         @Override
         public ItemMachineWrapper call() {
+            if(currentHolder.level().isClientSide){
+                OpenStuff.LOGGER.info("Client init !! {} {}", currentHolder, currentStack);
+            }else {
+                OpenStuff.LOGGER.info("Server init !! {} {}", currentHolder, currentStack);
+            }
             ItemMachineWrapper wrapper = new ItemMachineWrapper(currentStack, currentHolder);
             wrapper.checksum = getChecksum(currentHolder);
             return wrapper;
@@ -272,8 +278,8 @@ public class ItemMachineManager {
         public void onRemoval(RemovalNotification<String, ItemMachineWrapper> notification) {
             ItemMachineWrapper state = notification.getValue();
             if (state != null && state.node() != null) {
-                if (state.autoSave && state.player != null) {
-                    state.writeToNBT(state.player.registryAccess());
+                if (state.autoSave && state.holder != null) {
+                    state.writeToNBT(state.holder.registryAccess());
                 }
                 if (state.machine() != null) {
                     state.machine().stop();
@@ -321,15 +327,6 @@ public class ItemMachineManager {
         protected long timeout() {
             return 5L;
         }
-
-        @Override
-        public ItemMachineWrapper getWeak(ItemStack stack) {
-            String id = getId(stack);
-            if (id != null && !id.isEmpty()) {
-                return cache.getIfPresent(id);
-            }
-            return null;
-        }
     }
 
     // -------------------------------------------------------------- //
@@ -341,11 +338,11 @@ public class ItemMachineManager {
             return 10L;
         }
 
-        public void save(LivingEntity player) {
+        public void save(LivingEntity holder) {
             synchronized (cache) {
                 for (ItemMachineWrapper wrapper : cache.asMap().values()) {
-                    if (wrapper.player == player) {
-                        wrapper.writeToNBT(player.registryAccess());
+                    if (wrapper.holder == holder) {
+                        wrapper.writeToNBT(holder.registryAccess());
                     }
                 }
             }
@@ -354,8 +351,8 @@ public class ItemMachineManager {
         public void saveAll(Level level) {
             synchronized (cache) {
                 for (ItemMachineWrapper wrapper : cache.asMap().values()) {
-                    if (wrapper.getEnvironmentLevel() == level && wrapper.player != null) {
-                        wrapper.writeToNBT(wrapper.player.registryAccess());
+                    if (wrapper.getEnvironmentLevel() == level && wrapper.holder != null) {
+                        wrapper.writeToNBT(wrapper.holder.registryAccess());
                     }
                 }
             }
