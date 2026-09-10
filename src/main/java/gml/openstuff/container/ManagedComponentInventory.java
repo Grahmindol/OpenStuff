@@ -11,12 +11,11 @@ import li.cil.oc.api.util.Lifecycle;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
-import scala.collection.mutable.ArrayBuffer;
-
+import li.cil.oc.internal.scalalib.collection.mutable.ArrayBuffer;
+import li.cil.oc.internal.scalalib.Option;
 
 import li.cil.oc.api.Driver;
 import li.cil.oc.OpenComputers;
-import scala.Option;
 
 // TODO : also burk....
 public abstract class ManagedComponentInventory extends AbstractManagedEnvironment implements li.cil.oc.common.container.ComponentInventory {
@@ -78,21 +77,21 @@ public abstract class ManagedComponentInventory extends AbstractManagedEnvironme
     // ----------------------------------------------------------------------- //
 
     @SuppressWarnings("rawtypes")
-    private scala.Option[] _components;
+    private Option[] _components;
 
     @SuppressWarnings("rawtypes")
-    public scala.Option[] li$cil$oc$common$container$ComponentInventory$$_components() {
+    public Option[] li$cil$oc$common$container$ComponentInventory$$_components() {
         return this._components;
     }
 
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void li$cil$oc$common$container$ComponentInventory$$_components_$eq(scala.Option[] _components) {
+    public void li$cil$oc$common$container$ComponentInventory$$_components_$eq(Option[] _components) {
         this._components = _components;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void li$cil$oc$common$container$ComponentInventory$_setter_$updatingComponents_$eq(scala.collection.mutable.ArrayBuffer updatingComponents) {
+    public void li$cil$oc$common$container$ComponentInventory$_setter_$updatingComponents_$eq(ArrayBuffer updatingComponents) {
         this.updatingComponentsBuffer = updatingComponents;
     }
 
@@ -101,7 +100,7 @@ public abstract class ManagedComponentInventory extends AbstractManagedEnvironme
     }
 
     @Override
-    public scala.Option<ManagedEnvironment>[] componentSlots() {
+    public Option<ManagedEnvironment>[] componentSlots() {
         return li.cil.oc.common.container.ComponentInventory.super.componentSlots();
     }
 

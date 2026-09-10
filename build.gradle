@@ -3,7 +3,6 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.141'
     id 'idea'
-    id 'scala'
 }
 
 group = mod_group_id
@@ -72,14 +71,42 @@ repositories {
     maven { url = 'https://maven.neoforged.net/releases' }
     maven { url = 'https://maven.michiyo.me/releases/' }
     maven { url = 'https://maven.kotori316.com' }
+
+    exclusiveContent {
+        forRepositories(maven { url = "https://maven.ryanhcode.dev/releases" })
+        filter {
+            includeGroup "dev.ryanhcode.sable-companion"
+        }
+    }
+
+    exclusiveContent {
+        forRepositories(maven { url = "https://maven.createmod.net" })
+        filter {
+            includeGroup "net.createmod.ponder"
+            includeGroup "com.simibubi.create"
+            includeGroup "dev.engine-room.flywheel"
+        }
+    }
+
+    exclusiveContent {
+        forRepositories(maven { url = "https://maven.ithundxr.dev/snapshots" })
+        filter {
+            includeGroup "com.tterrag.registrate"
+        }
+    }
 }
 
 dependencies {
-    implementation files('libs/opencomputers-1.9.3-dev.local.jar')
-    //compileOnly "li.cil.oc:opencomputers:${opencomputers_version}"
-    //runtimeOnly "li.cil.oc:opencomputers:${opencomputers_version}"
+    //implementation files('libs/opencomputers-1.9.3-dev.local.jar')
+    implementation "li.cil.oc:opencomputers:${opencomputers_version}"
     implementation "com.kotori316:scalablecatsforce-neoforge:${scala_loader_version}:with-library"
     implementation 'org.mindrot:jbcrypt:0.4'
+
+    implementation "dev.engine-room.flywheel:flywheel-neoforge-1.21.1:1.0.6"
+    implementation("com.simibubi.create:create-1.21.1:6.0.10-280:slim") { transitive = false }
+    implementation("net.createmod.ponder:ponder-neoforge:1.0.82+mc1.21.1")
+    implementation("com.tterrag.registrate:Registrate:MC1.21-1.3.0+67")
+
 }
 
 tasks.named('processResources', ProcessResources).configure {
