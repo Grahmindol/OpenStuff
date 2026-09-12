@@ -4,10 +4,12 @@ import gml.openstuff.ItemMachineWrapper;
 import gml.openstuff.OpenStuff;
 import gml.openstuff.container.ManagedComponentInventory;
 import gml.openstuff.data.PieceData;
+import li.cil.oc.api.network.Connector;
 import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
 import li.cil.oc.api.prefab.DriverItem;
+import li.cil.oc.internal.scalalib.Option;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -36,19 +38,43 @@ public class ArmorDriver extends DriverItem {
     }
 
     public static class Armor extends ManagedComponentInventory {
-        public ItemStack stack;
-        public ItemMachineWrapper wrapper;
-        public PieceData data = new PieceData();
-        private ArmorHost host;
+        public final ItemStack stack;
+        public final ItemMachineWrapper wrapper;
+        public final PieceData data = new PieceData();
+        private final ArmorHost host;
 
         public Armor(ItemStack stack, ItemMachineWrapper wrapper){
             this.stack = stack;
             this.wrapper = wrapper;
             this.host = new ArmorHost(wrapper, wrapper.holder.getEquipmentSlotForItem(stack));
 
+            // TODO : Make add sttings for buffer sizes.
             setNode(li.cil.oc.api.Network.newNode(this, li.cil.oc.api.network.Visibility.Network).
-                    withComponent("armor").
+                    withComponent("armor").withConnector(1000.0).
                     create());
+
+            if (node() instanceof Connector connector) {
+                double charge = Math.max(0, this.data.energy - connector.globalBuffer());
+                connector.changeBuffer(charge);
+            }
+        }
+
+        @Override
+        public void update() {
+            super.update();
+
+            data.energy = ((Connector)this.node()).localBuffer();
+            data.maxEnergy = ((Connector)this.node()).localBufferSize();
+
+            for(Option<ManagedEnvironment> comp : this.componentSlots()){
+                if (comp.isDefined()){
+                    ManagedEnvironment me = comp.get();
+                    if (me.node() instanceof Connector connector) {
+                        data.energy += connector.localBuffer();
+                        data.maxEnergy += connector.localBufferSize();
+                    }
+                }
+            }
         }
 
         @Override

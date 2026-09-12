@@ -30,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
@@ -97,7 +98,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
     public EnvironmentHost host() { return this; }
 
     @Override
-    public boolean stillValid(Player player) {
+    public boolean stillValid(@NotNull Player player) {
         return machine() != null && machine().canInteract(player.getName().getString());
     }
 
@@ -230,8 +231,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         updateComponents();
 
         data.isRunning = machine.isRunning();
-        data.energy = connector.globalBuffer();
-        data.maxEnergy =connector.globalBufferSize();
 
         if (lastRunning != machine.isRunning()) {
             lastRunning = machine.isRunning();

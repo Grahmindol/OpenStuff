@@ -2,5 +2,10 @@
     "item.openstuff.open_helmet": "Open Helmet",
     "item.openstuff.open_chest": "Open Chestplate",
     "item.openstuff.open_legs": "Open Leggings",
-    "item.openstuff.open_boots": "Open Boots"
+    "item.openstuff.open_boots": "Open Boots",
+
+    "oc:tooltip.open_chest": "Smart armor powered by an onboard computer.\nPress 'O' to interact.\nWarning: Keeps you cool under pressure, unlike its CPU.\n",
+    "oc:tooltip.open_helmet": "Completely useless without the Open Chestplate.\nBecause staring at a screen all day wasn’t enough, now you’re wearing one.\n",
+    "oc:tooltip.open_legs": "Completely useless without the Open Chestplate.\nNobody actually knows what to plug into these, but hey, they look techy.\n",
+    "oc:tooltip.open_boots": "Completely useless without the Open Chestplate.\nPacked with heavy circuitry. Who said the future was comfortable?\n"
 }

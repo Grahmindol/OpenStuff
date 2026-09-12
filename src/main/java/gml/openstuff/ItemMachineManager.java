@@ -182,7 +182,7 @@ public class ItemMachineManager {
      */
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
-        if(!Objects.equals(getOrCreateId(event.getTo()), getOrCreateId((event.getFrom())))) return;
+        if(Objects.equals(getOrCreateId(event.getTo()), getOrCreateId((event.getFrom())))) return;
 
         ItemStack stack = event.getEntity().getItemBySlot(EquipmentSlot.CHEST);
 
