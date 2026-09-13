@@ -6,6 +6,7 @@ import li.cil.oc.common.datacomponents.OCComponents$;
 import li.cil.oc.internal.scalalib.collection.immutable.Seq;
 import li.cil.oc.internal.scalalib.collection.immutable.Seq$;
 import li.cil.oc.util.Tooltip;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterials;
@@ -34,8 +35,8 @@ public abstract class OpenArmorPiece extends ArmorItem implements IItemExtension
 
         if (Tooltip.showExtendedTooltip(flag)) {
             PieceData info = new PieceData(stack);
-            ItemStack[] components = info.items;
-            if (components.length > 1) {
+            NonNullList<ItemStack> components = info.items;
+            if (!components.isEmpty()) {
                 Tooltip.add(tooltip, flag, "server.Components", Seq$.MODULE$.empty());
 
                 for(ItemStack component : components) {

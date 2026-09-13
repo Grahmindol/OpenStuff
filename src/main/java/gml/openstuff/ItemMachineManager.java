@@ -47,6 +47,14 @@ public class ItemMachineManager {
         }
     }
 
+    public static ItemMachineWrapper getWeak(ItemStack stack, Level level) {
+        if (level.isClientSide) {
+            return CLIENT.getWeak(stack);
+        } else {
+            return SERVER.getWeak(stack);
+        }
+    }
+
     // -------------------------------------------------------------- //
 
     private static String getId(ItemStack stack) {
@@ -182,15 +190,14 @@ public class ItemMachineManager {
      */
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
-        if(Objects.equals(getOrCreateId(event.getTo()), getOrCreateId((event.getFrom())))) return;
+        OpenStuff.LOGGER.info("equipment change !");
 
         ItemStack stack = event.getEntity().getItemBySlot(EquipmentSlot.CHEST);
-
         if(stack.is(OpenStuff.OPEN_CHEST.get())){
             ItemMachineWrapper wrapper = SERVER.get(stack, event.getEntity());
-            String newChecksum = getChecksum(event.getEntity());
 
-            wrapper.checksum = newChecksum;
+            wrapper.connectComponents();
+            wrapper.checksum = getChecksum(event.getEntity());
         }
 
     }

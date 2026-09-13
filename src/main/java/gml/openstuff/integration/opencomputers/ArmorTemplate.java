@@ -137,7 +137,7 @@ public class ArmorTemplate {
         PieceData data = new PieceData();
         for (int i = 1; i < inventory.getContainerSize(); i++) {
             ItemStack stack = inventory.getItem(i);
-            data.items[i] = stack;
+            data.items.set(i, stack);
         }
 
         data.saveData(result);

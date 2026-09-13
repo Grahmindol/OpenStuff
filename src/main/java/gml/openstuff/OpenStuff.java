@@ -29,6 +29,7 @@ import net.minecraft.client.renderer.entity.ArmorStandRenderer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.world.entity.EntityType;
@@ -103,50 +104,50 @@ public final class OpenStuff {
         // just to be executed once
         if (event.getTabKey() != CreativeModeTabs.INGREDIENTS) return;
 
+        if (event.getTabKey() != CreativeModeTabs.INGREDIENTS) return;
+
+        // --- HELMET ---
         ItemStack helmet = new ItemStack(OPEN_HELMET);
-        PieceData helmet_data = new PieceData();
-        ItemStack[] helmet_items = new ItemStack[] {
+        PieceData helmetData = new PieceData(new ItemStack[] {
                 OCBlocks$.MODULE$.ScreenTier1().toStack(),
-                OCBlocks$.MODULE$.Keyboard().toStack(),
-        };
-
-        helmet_data.items = Arrays.copyOf(helmet_items, 32);
-        Arrays.fill(helmet_data.items, helmet_items.length, 32, ItemStack.EMPTY);
-        helmet_data.saveData(helmet);
-
+                OCBlocks$.MODULE$.Keyboard().toStack()
+        }, 1000, 1000);
+        helmetData.saveData(helmet);
         li.cil.oc.api.Items.registerStack(helmet, "Creative Helmet", null);
 
+
+        // --- CHEST ---
         ItemStack chest = new ItemStack(OPEN_CHEST);
-        PieceData data = new PieceData();
-        ItemStack[] items = new ItemStack[] {
+        PieceData chestData = new PieceData(new ItemStack[] {
                 OCItems$.MODULE$.GraphicsCardTier3().toStack(),
                 OCItems$.MODULE$.WirelessNetworkCardTier2().toStack(),
-
                 OCItems$.MODULE$.CPUTier3().toStack(),
                 OCItems$.MODULE$.RAMTier6().toStack(),
                 OCItems$.MODULE$.RAMTier6().toStack(),
-
                 Loot.defaultEEPROM().copy(),
-                OCItems$.MODULE$.HDDTier3().toStack(),
-        };
-        data.items = Arrays.copyOf(items, 32);
-        Arrays.fill(data.items, items.length, 32, ItemStack.EMPTY);
-        data.saveData(chest);
+                OCItems$.MODULE$.HDDTier3().toStack()
+        }, 1000, 1000);
+        chestData.saveData(chest);
 
-        MachineData machine_data = new MachineData();
-
-        machine_data.container = OCBlocks$.MODULE$.DiskDrive().toStack();
-        machine_data.isRunning = false;
-
-        HolderLookup.Provider registries = VanillaRegistries.createLookup();
-        machine_data.saveData(chest, registries);
+        MachineData machineData = new MachineData();
+        machineData.container = OCBlocks$.MODULE$.DiskDrive().toStack();
+        machineData.isRunning = false;
+        machineData.saveData(chest, VanillaRegistries.createLookup());
 
         li.cil.oc.api.Items.registerStack(chest, "Creative Chest", null);
 
+
+        // --- LEGS & BOOTS ---
         ItemStack legs = new ItemStack(OPEN_LEGS);
+        PieceData legsData = new PieceData(new ItemStack[] {
+        }, 1000, 1000);
+        legsData.saveData(legs);
         li.cil.oc.api.Items.registerStack(legs, "Creative Legs", null);
 
         ItemStack boots = new ItemStack(OPEN_BOOTS);
+        PieceData bootsData = new PieceData(new ItemStack[] {
+        }, 1000, 1000);
+        bootsData.saveData(boots);
         li.cil.oc.api.Items.registerStack(boots, "Creative Boots", null);
     }
 

@@ -1,19 +1,14 @@
 package gml.openstuff;
 
 import com.google.common.collect.Iterables;
+import gml.openstuff.container.SimpleComponentItemsEnvironment;
 import gml.openstuff.data.MachineData;
 import gml.openstuff.data.PieceData;
 import gml.openstuff.integration.opencomputers.ArmorDriver;
-import gml.openstuff.integration.opencomputers.ArmorHost;
-import li.cil.oc.api.Driver;
 import li.cil.oc.api.UnrecoverablePersistanceException;
-import li.cil.oc.api.driver.DriverItem;
-import li.cil.oc.api.driver.item.Container;
-import li.cil.oc.api.driver.item.Slot;
 import li.cil.oc.api.internal.TextBuffer;
 import li.cil.oc.api.machine.Machine;
 import li.cil.oc.api.machine.MachineHost;
-import gml.openstuff.container.ComponentInventory;
 import li.cil.oc.api.network.Connector;
 import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.Node;
@@ -32,11 +27,9 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-
 import static gml.openstuff.Networking.sendServerState;
 
-public class ItemMachineWrapper extends ComponentInventory implements MachineHost, li.cil.oc.api.internal.Tablet {
+public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implements MachineHost, li.cil.oc.api.internal.Tablet {
     public ItemStack stack;
     public LivingEntity holder;
 
@@ -68,7 +61,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
             connectComponents();
 
             for (var slot : componentSlots()) {
-                if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
+                if (slot instanceof ArmorDriver.Armor piece) {
                     piece.connectComponents();
                 }
             }
@@ -97,12 +90,10 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
     @Override
     public EnvironmentHost host() { return this; }
 
-    @Override
     public boolean stillValid(@NotNull Player player) {
         return machine() != null && machine().canInteract(player.getName().getString());
     }
 
-    @Override
     public void setChanged() {
         saveData(stack);
     }
@@ -127,21 +118,13 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         return slot.getIndex(slot.isArmor() ? 2 : 0);
     }
 
-    public void onItemRemoved(EquipmentSlot slot, ItemStack stack){
-        this.onItemRemoved(getIndexForEquipment(slot), stack);
-    }
-
-    public void onItemAdded(EquipmentSlot slot, ItemStack stack){
-        this.onItemAdded(getIndexForEquipment(slot), stack);
-    }
-
     @Override
     public int getContainerSize() { return this.items().length; }
 
     @Override
     public Iterable<ItemStack> internalComponents() {
         PieceData chest = new PieceData(stack);
-        return Arrays.stream(chest.items).toList();
+        return chest.items.stream().toList();
     }
 
     @Override
@@ -208,12 +191,10 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     // ----------------------------------------------------------------------- //
 
-    @Override
     public void  loadData(DataComponentHolder tag_holder){
         data.loadData(tag_holder, holder.registryAccess());
     }
 
-    @Override
     public void  saveData(MutableDataComponentHolder tag_holder){
         saveComponents();
         data.saveData(tag_holder, holder.registryAccess());
@@ -221,9 +202,7 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     // ----------------------------------------------------------------------- //
 
-
     public void update(){
-
         Connector connector = ((Connector)this.machine().node());
 
         connector.changeBuffer(Double.POSITIVE_INFINITY);
@@ -251,26 +230,6 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
         }
     }
 
-
-
-
-    // --------------------------------------------------------- //
-
-    private String containerSlotType(){
-        if (data.container.isEmpty()) return Slot.None;
-        DriverItem driver = Driver.driverFor(data.container, ArmorHost.class);
-        if( driver instanceof Container cont)
-            return cont.providedSlot(data.container);
-        return Slot.None;
-    }
-
-    private int containerSlotTier() {
-        if (data.container.isEmpty()) return -1;
-        DriverItem driver = Driver.driverFor(data.container, ArmorHost.class);
-        if( driver instanceof Container cont)
-            return cont.providedTier(data.container);
-        return -1;
-    }
 
     // --------------------------------------------------------- //
 
@@ -307,14 +266,14 @@ public class ItemMachineWrapper extends ComponentInventory implements MachineHos
 
     private void tryOpenArmorScreen() {
         for (var slot : this.componentSlots()) {
-            if (slot != null && slot.isDefined() && slot.get() instanceof TextBuffer buffer) {
+            if (slot instanceof TextBuffer buffer) {
                 Minecraft.getInstance().pushGuiLayer(new li.cil.oc.client.gui.Screen(buffer, true, () -> true, buffer::isRenderingEnabled));
                 return; // Stops execution immediately once found
             } else
 
-            if (slot != null && slot.isDefined() && slot.get() instanceof ArmorDriver.Armor piece) {
+            if (slot instanceof ArmorDriver.Armor piece) {
                 for (var subSlot : piece.componentSlots()) {
-                    if (subSlot != null && subSlot.isDefined() && subSlot.get() instanceof TextBuffer buffer) {
+                    if (subSlot instanceof TextBuffer buffer) {
                         Minecraft.getInstance().pushGuiLayer(new li.cil.oc.client.gui.Screen(buffer, true, () -> true, buffer::isRenderingEnabled));
                         return; // Stops execution immediately once found
                     }

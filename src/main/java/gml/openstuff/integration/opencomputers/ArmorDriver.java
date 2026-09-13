@@ -2,19 +2,16 @@ package gml.openstuff.integration.opencomputers;
 
 import gml.openstuff.ItemMachineWrapper;
 import gml.openstuff.OpenStuff;
-import gml.openstuff.container.ManagedComponentInventory;
+import gml.openstuff.container.ManagedComponentItemsEnvironment;
 import gml.openstuff.data.PieceData;
 import li.cil.oc.api.network.Connector;
 import li.cil.oc.api.network.EnvironmentHost;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.network.Node;
 import li.cil.oc.api.prefab.DriverItem;
-import li.cil.oc.internal.scalalib.Option;
 import net.minecraft.core.component.DataComponentHolder;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
@@ -37,7 +34,7 @@ public class ArmorDriver extends DriverItem {
         return "tablet";
     }
 
-    public static class Armor extends ManagedComponentInventory {
+    public static class Armor extends ManagedComponentItemsEnvironment {
         public final ItemStack stack;
         public final ItemMachineWrapper wrapper;
         public final PieceData data = new PieceData();
@@ -66,9 +63,8 @@ public class ArmorDriver extends DriverItem {
             data.energy = ((Connector)this.node()).localBuffer();
             data.maxEnergy = ((Connector)this.node()).localBufferSize();
 
-            for(Option<ManagedEnvironment> comp : this.componentSlots()){
-                if (comp.isDefined()){
-                    ManagedEnvironment me = comp.get();
+            for(ManagedEnvironment me : this.componentSlots()){
+                if (me != null){
                     if (me.node() instanceof Connector connector) {
                         data.energy += connector.localBuffer();
                         data.maxEnergy += connector.localBufferSize();
@@ -80,20 +76,8 @@ public class ArmorDriver extends DriverItem {
         @Override
         public EnvironmentHost host() { return this.host;}
 
-
         @Override
-        public void setChanged() {
-            this.saveData(stack);
-            wrapper.setChanged();
-        }
-
-        @Override
-        public ItemStack[] items() { return data.items;}
-
-        @Override
-        public boolean stillValid(@NotNull Player player) {
-            return wrapper.stillValid(player);
-        }
+        public ItemStack[] items() { return data.items.toArray(new ItemStack[0]);}
 
         @Override
         public void loadData(DataComponentHolder holder) {

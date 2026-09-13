@@ -1,5 +1,10 @@
 package gml.openstuff.data;
 
+import gml.openstuff.integration.opencomputers.ArmorHost;
+import li.cil.oc.api.Driver;
+import li.cil.oc.api.driver.DriverItem;
+import li.cil.oc.api.driver.item.Container;
+import li.cil.oc.api.driver.item.Slot;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.core.component.DataComponents;
@@ -54,5 +59,21 @@ public class MachineData {
         }
 
         holder.set(DataComponents.CUSTOM_DATA, CustomData.of(mainTag));
+    }
+
+    public String containerSlotType(){
+        if (this.container.isEmpty()) return Slot.None;
+        DriverItem driver = Driver.driverFor(this.container, ArmorHost.class);
+        if( driver instanceof Container cont)
+            return cont.providedSlot(this.container);
+        return Slot.None;
+    }
+
+    public int containerSlotTier() {
+        if (this.container.isEmpty()) return -1;
+        DriverItem driver = Driver.driverFor(this.container, ArmorHost.class);
+        if( driver instanceof Container cont)
+            return cont.providedTier(this.container);
+        return -1;
     }
 }
