@@ -2,6 +2,7 @@ package gml.openstuff.mixin;
 
 import gml.openstuff.Networking;
 import gml.openstuff.OpenStuff;
+import gml.openstuff.container.InventoryMenuAccess;
 import gml.openstuff.data.MachineData;
 import li.cil.oc.Localization;
 import li.cil.oc.client.Textures;
@@ -15,6 +16,7 @@ import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,8 +24,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.List;
 
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin extends EffectRenderingInventoryScreen<InventoryMenu> {
@@ -55,7 +55,6 @@ public abstract class InventoryScreenMixin extends EffectRenderingInventoryScree
         ItemStack chest = this.minecraft.player.getItemBySlot(EquipmentSlot.CHEST);
         MachineData data = new MachineData(chest, VanillaRegistries.createLookup());
         Networking.setServerState(chest, !data.isRunning);
-
     }
 
     // 2. Inject into background rendering
@@ -76,15 +75,19 @@ public abstract class InventoryScreenMixin extends EffectRenderingInventoryScree
         }
         graphics.blit(Textures.GUI$.MODULE$.Slot(), leftPos + 145, topPos + 61, 0.0F, 0.0F, 18, 18, 18, 18);
 
-        // FIXME: the button texture do not toggle
-        if (chest.isEmpty() || !chest.is(OpenStuff.OPEN_CHEST)) return;
-        if (this.openstuff$powerButton != null) {
+        // Cast to the interface instead of the Mixin class directly
+        if (this.menu instanceof InventoryMenuAccess access) {
+            DataSlot dataSlot = access.openstuff$getIsRunningDataSlot();
+            if (dataSlot != null) {
+                boolean isRunning = dataSlot.get() == 1;
 
-            MachineData data = new MachineData(chest, VanillaRegistries.createLookup());
-            this.openstuff$powerButton.toggled_$eq(data.isRunning);
-            this.openstuff$powerButton.setTooltip(Tooltip.create(Component.literal(
-                    data.isRunning ? Localization.localizeImmediately("gui.Robot.TurnOff") : Localization.localizeImmediately("gui.Robot.TurnOn")
-            )));
+                this.openstuff$powerButton.toggled_$eq(isRunning);
+                this.openstuff$powerButton.setTooltip(Tooltip.create(Component.literal(
+                        isRunning
+                                ? Localization.localizeImmediately("gui.Robot.TurnOff")
+                                : Localization.localizeImmediately("gui.Robot.TurnOn")
+                )));
+            }
         }
 
     }

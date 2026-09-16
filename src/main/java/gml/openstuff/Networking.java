@@ -1,7 +1,6 @@
 package gml.openstuff;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -22,11 +21,8 @@ public class Networking {
     public record MachineStatePayload(ItemStack stack, State state, boolean targetState) implements CustomPacketPayload {
 
         public enum State {
-            REQUEST_STATE,
             REQUEST_INTERACTION,
-            SET_STATE, // <--- New state for setting state directly
-            RESPONSE_STOPPED,
-            RESPONSE_RUNNING;
+            SET_STATE;
 
             public static final StreamCodec<ByteBuf, State> STREAM_CODEC =
                     ByteBufCodecs.idMapper(id -> values()[id], State::ordinal);
@@ -78,9 +74,7 @@ public class Networking {
                         wrapper.interact(player.level(), player);
                         PacketDistributor.sendToPlayer(player, new MachineStatePayload(stack, MachineStatePayload.State.REQUEST_INTERACTION));
                     }
-                    case REQUEST_STATE -> sendServerState(player, stack, wrapper.machine().isRunning());
                     case SET_STATE -> {
-                        // 1. Update server state
                         if(payload.targetState()){
                             wrapper.machine().start();
                         }else {
@@ -94,24 +88,20 @@ public class Networking {
                             player.sendSystemMessage(Component.translatable(msg));
                         }
                         wrapper.data.isRunning = wrapper.machine().isRunning();
-                        wrapper.data.saveData(stack, VanillaRegistries.createLookup());
-                        sendServerState((ServerPlayer) player, stack, wrapper.data.isRunning);
+                        wrapper.setChanged();
                     }
                     default -> {}
                 }
             }
         } else {
             // ----------------------------------------------------------------------- //
-
             Player player = context.player();
             ItemStack stack = payload.stack();
-            ItemMachineWrapper wrapper = ItemMachineManager.get(stack, player);
 
             switch (payload.state()) {
-                case REQUEST_INTERACTION -> wrapper.interact(player.level(), player);
-                case RESPONSE_RUNNING, RESPONSE_STOPPED -> {
-                    wrapper.data.isRunning = (payload.state() == MachineStatePayload.State.RESPONSE_RUNNING);
-                    wrapper.saveData(stack);
+                case REQUEST_INTERACTION -> {
+                    ItemMachineWrapper wrapper = new ItemMachineWrapper(stack, player);
+                    wrapper.interact(player.level(), player);
                 }
                 default -> {}
             }
@@ -119,15 +109,6 @@ public class Networking {
     }
 
     //----------------------------------------------------------------------//
-
-    /**
-     * Sends a request from the Client to the Server to retrieve the current running state of a machine.
-     *
-     * @param stack the {@link ItemStack} representing the machine to query
-     */
-    public static void askServerState(ItemStack stack) {
-        PacketDistributor.sendToServer(new MachineStatePayload(stack, MachineStatePayload.State.REQUEST_STATE));
-    }
 
     /**
      * Sends an interaction request from the Client to the Server to trigger the machine's primary action.
@@ -146,19 +127,5 @@ public class Networking {
      */
     public static void setServerState(ItemStack stack, boolean isRunning) {
         PacketDistributor.sendToServer(new MachineStatePayload(stack, MachineStatePayload.State.SET_STATE, isRunning));
-    }
-
-    /**
-     * Sends the current machine state from the Server back to a specific client player.
-     *
-     * @param player    the target {@link ServerPlayer} receiving the state update
-     * @param stack     the {@link ItemStack} representing the machine
-     * @param isRunning the current operational state of the machine on the server
-     */
-    public static void sendServerState(ServerPlayer player, ItemStack stack, boolean isRunning) {
-        MachineStatePayload.State responseState = isRunning
-                ? MachineStatePayload.State.RESPONSE_RUNNING
-                : MachineStatePayload.State.RESPONSE_STOPPED;
-        PacketDistributor.sendToPlayer(player, new MachineStatePayload(stack, responseState));
     }
 }

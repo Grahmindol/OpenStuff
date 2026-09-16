@@ -25,24 +25,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
-import org.jetbrains.annotations.NotNull;
-
-import static gml.openstuff.Networking.sendServerState;
 
 public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implements MachineHost, li.cil.oc.api.internal.Tablet {
     public ItemStack stack;
     public LivingEntity holder;
 
-    public String checksum;
-
 
     private li.cil.oc.api.machine.Machine machine;
-
     public MachineData data = new MachineData();
-
-    public boolean isInitialized = false;
-    public boolean isDirty = true;
-    public int timesChanged = 0;
 
     // Server side only
     private boolean lastRunning = false;
@@ -56,7 +46,6 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
         if (!getEnvironmentLevel().isClientSide) {
             li.cil.oc.api.Network.joinNewNetwork(machine.node());
             writeToNBT(holder.registryAccess());
-            isInitialized = true;
         } else {
             connectComponents();
 
@@ -65,7 +54,6 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
                     piece.connectComponents();
                 }
             }
-            isInitialized = true;
         }
     }
 
@@ -90,12 +78,26 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
     @Override
     public EnvironmentHost host() { return this; }
 
-    public boolean stillValid(@NotNull Player player) {
-        return machine() != null && machine().canInteract(player.getName().getString());
+    private EquipmentSlot getSlotForStack() {
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            if (holder.getItemBySlot(slot) == stack) { // Exact object match
+                return slot;
+            }
+        }
+        return null; // Not found in any equipment slot
     }
 
     public void setChanged() {
         saveData(stack);
+
+        EquipmentSlot slot = getSlotForStack();
+        if(slot == null){
+            OpenStuff.LOGGER.warn("hum i do not knw wher my slot is...");
+            return;
+        }
+
+        holder.setItemSlot(slot, stack.copy());
+        stack = holder.getItemBySlot(slot);
     }
 
     @Override
@@ -136,11 +138,6 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
     public void onConnect(Node node){
         if (node == this.node()) {
             connectComponents();
-
-            /*if(!isInitialized){
-                sendServerState((ServerPlayer) player, stack, machine().isRunning());
-                isInitialized = true;
-            }*/
         }
     }
 
@@ -215,10 +212,6 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
             lastRunning = machine.isRunning();
             setChanged();
 
-            if (this.holder instanceof ServerPlayer player){
-                sendServerState(player, stack, machine.isRunning());
-            }
-
             if (machine.isRunning()) {
                 for(Node node : machine.node().reachableNodes()){
                     if(node.host() instanceof TextBuffer buffer){
@@ -256,7 +249,7 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
                     //player.sendSystemMessage(Component.translatable("gui.Analyzer.LastError", Component.translatable(msg)));
                     player.sendSystemMessage(Component.translatable(msg));
                 }
-                sendServerState((ServerPlayer) player, stack, machine().isRunning());
+                setChanged();
             }
             else {
                 tryOpenArmorScreen();

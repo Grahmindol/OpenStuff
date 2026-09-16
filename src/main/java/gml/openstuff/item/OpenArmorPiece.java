@@ -2,8 +2,6 @@ package gml.openstuff.item;
 
 import gml.openstuff.data.PieceData;
 import li.cil.oc.common.datacomponents.OCComponents;
-import li.cil.oc.common.datacomponents.OCComponents$;
-import li.cil.oc.internal.scalalib.collection.immutable.Seq;
 import li.cil.oc.internal.scalalib.collection.immutable.Seq$;
 import li.cil.oc.util.Tooltip;
 import net.minecraft.core.NonNullList;
@@ -14,7 +12,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.neoforged.neoforge.common.extensions.IItemExtension;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
