@@ -7,7 +7,9 @@
     "InventoryMenuMixin"
   ],
   "client": [
-    "InventoryScreenMixin"
+    "InventoryScreenMixin",
+    "CreativeModeInventoryScreenMixin",
+    "SlotWrapperAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

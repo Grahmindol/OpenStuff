@@ -18,7 +18,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -79,11 +78,11 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
     public EnvironmentHost host() { return this; }
 
     private EquipmentSlot getSlotForStack() {
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
-            if (holder.getItemBySlot(slot) == stack) { // Exact object match
-                return slot;
-            }
-        }
+        ItemStack chest = holder.getItemBySlot(EquipmentSlot.CHEST);
+        if(ItemMachineManager.getOrCreateId(chest).equals(ItemMachineManager.getOrCreateId(stack))) return EquipmentSlot.CHEST;
+
+        // TODO SEARCH ON THE FULL INV
+
         return null; // Not found in any equipment slot
     }
 
@@ -93,6 +92,8 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
         EquipmentSlot slot = getSlotForStack();
         if(slot == null){
             OpenStuff.LOGGER.warn("hum i do not knw wher my slot is...");
+            OpenStuff.LOGGER.warn(stack.toString());
+            OpenStuff.LOGGER.warn(holder.toString());
             return;
         }
 
@@ -227,33 +228,18 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
     // --------------------------------------------------------- //
 
     public void interact(Level level, Player player){
-        if (player.isSecondaryUseActive()) {
-            if (!level.isClientSide) {
-                if (player instanceof ServerPlayer){
-                    // TODO: make a custon GUI
-                    /*player.openMenu(this, buff -> {
-                        ItemStack.STREAM_CODEC.encode(buff, this.stack);
-                        buff.writeVarInt(this.getContainerSize());
-                        buff.writeUtf(this.containerSlotType(), 32);
-                        buff.writeVarInt(this.containerSlotTier());
-                    });*/
-                }
+        if (!level.isClientSide) {
+            machine().start();
+            String msg = machine().lastError();
+            if(msg != null) {
+                // TODO: fix translation.
+                //player.sendSystemMessage(Component.translatable("gui.Analyzer.LastError", Component.translatable(msg)));
+                player.sendSystemMessage(Component.translatable(msg));
             }
+            setChanged();
         }
         else {
-            if (!level.isClientSide) {
-                machine().start();
-                String msg = machine().lastError();
-                if(msg != null) {
-                    // TODO: fix translation.
-                    //player.sendSystemMessage(Component.translatable("gui.Analyzer.LastError", Component.translatable(msg)));
-                    player.sendSystemMessage(Component.translatable(msg));
-                }
-                setChanged();
-            }
-            else {
-                tryOpenArmorScreen();
-            }
+            tryOpenArmorScreen();
         }
     }
 

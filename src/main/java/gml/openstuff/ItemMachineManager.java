@@ -3,7 +3,6 @@ package gml.openstuff;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.ImmutableMap;
 import gml.openstuff.item.OpenArmorPiece;
 import li.cil.oc.api.network.Node;
 import net.minecraft.client.Minecraft;
@@ -12,7 +11,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
@@ -24,6 +22,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +34,7 @@ public class ItemMachineManager {
 
     public static ItemMachineWrapper get(ItemStack stack, LivingEntity holder) {
         if (holder.level().isClientSide) {
-            throw new IllegalStateException("hey i m tring to build client cache !");
+            throw new IllegalStateException("hey I'm trying to build client cache !");
         } else {
             return SERVER.get(stack, holder);
         }
@@ -56,7 +55,7 @@ public class ItemMachineManager {
         return null;
     }
 
-    private static String getOrCreateId(ItemStack stack) {
+    public static @Nonnull String getOrCreateId(ItemStack stack) {
         // all non-open stuff items are the same for us.
         if(!(stack.getItem() instanceof OpenArmorPiece)) return "none";
 
@@ -105,10 +104,6 @@ public class ItemMachineManager {
         }
     }
 
-
-    /**
-     * called on server each tick, we update each cached network.
-     */
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Pre e) {
         SERVER.cleanUp();
@@ -118,9 +113,6 @@ public class ItemMachineManager {
         }
     }
 
-    /**
-     * when an openChest is equiped on server side, we create the wrapper.
-     */
     @SubscribeEvent
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
         OpenStuff.LOGGER.info("equipment change !");
