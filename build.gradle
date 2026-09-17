@@ -66,6 +66,44 @@ sourceSets {
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// took from https://github.com/PC-Logix/OpenSecurity/blob/1.21.1/build.gradle by PC-Logix under MIT License on 17/09/26
+
+def wikiSourceDirectory = file('src/main/resources/assets/openstuff/doc')
+def wikiStagingDirectory = file("${System.getProperty('java.io.tmpdir')}/openstuff-wiki-source")
+
+tasks.register('syncGitWiki') {
+    description = 'Fetches the OpenStuff wiki for the in-game manual.'
+    group = 'documentation'
+
+    doLast {
+        def stagingDirectory = wikiStagingDirectory
+        delete stagingDirectory
+
+        exec {
+            commandLine 'git', 'clone', '--depth', '1', '--branch', 'master',
+                    'https://github.com/Grahmindol/OpenStuff.wiki.git', stagingDirectory.absolutePath
+        }
+
+        delete wikiSourceDirectory
+        copy {
+            from stagingDirectory
+            into wikiSourceDirectory
+            exclude '.git/**'
+        }
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn tasks.named('syncGitWiki')
+}
+
+tasks.named('runClient').configure {
+    dependsOn tasks.named('syncGitWiki')
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 repositories {
     mavenCentral()
     maven { url = 'https://maven.neoforged.net/releases' }

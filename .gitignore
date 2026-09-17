@@ -105,3 +105,6 @@ src.zip
 OpenStuff.zip
 /reference
 /.idea
+
+
+/src/main/resources/assets/openstuff/doc/*
