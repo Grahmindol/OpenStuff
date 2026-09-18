@@ -25,6 +25,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.MutableDataComponentHolder;
 
+import java.util.Objects;
+import java.util.stream.IntStream;
+
 public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implements MachineHost, li.cil.oc.api.internal.Tablet {
     public ItemStack stack;
     public LivingEntity holder;
@@ -132,7 +135,13 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
 
     @Override
     public int componentSlot(String address) {
-        return -1;
+        return IntStream.range(0, this.componentSlots().length)
+                .filter(i ->
+                        this.componentSlots()[i] != null &&
+                        this.componentSlots()[i].node() != null &&
+                         Objects.equals(this.componentSlots()[i].node().address(), address))
+                .findFirst()
+                .orElse(-1);
     }
 
     @Override
