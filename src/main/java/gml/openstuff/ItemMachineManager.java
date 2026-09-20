@@ -3,11 +3,11 @@ package gml.openstuff;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.ImmutableMap;
 import gml.openstuff.item.OpenArmorPiece;
 import li.cil.oc.api.network.Node;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -41,19 +41,6 @@ public class ItemMachineManager {
     }
 
     // -------------------------------------------------------------- //
-
-    private static String getId(ItemStack stack) {
-        if (stack.has(DataComponents.CUSTOM_DATA)) {
-            CustomData customData = stack.get(DataComponents.CUSTOM_DATA);
-            if (customData != null) {
-                CompoundTag tag = customData.copyTag();
-                if (tag.contains("openstuff_machine_id", Tag.TAG_STRING)) {
-                    return tag.getString("openstuff_machine_id");
-                }
-            }
-        }
-        return null;
-    }
 
     public static @Nonnull String getOrCreateId(ItemStack stack) {
         // all non-open stuff items are the same for us.
@@ -106,6 +93,7 @@ public class ItemMachineManager {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Pre e) {
+        SERVER.keepAlive();
         SERVER.cleanUp();
 
         for (ItemMachineWrapper wrapper : SERVER.cache.asMap().values()) {
@@ -117,16 +105,22 @@ public class ItemMachineManager {
     public static void onEquipmentChange(LivingEquipmentChangeEvent event) {
         OpenStuff.LOGGER.info("equipment change !");
 
+        if(event.getFrom().is(OpenStuff.OPEN_CHEST.get())){
+            String id = getOrCreateId(event.getFrom());
+            if(!id.equals(getOrCreateId(event.getTo()))){
+
+                OpenStuff.LOGGER.info("removing a chest !");
+                SERVER.cache.invalidate(id);
+            }
+        }
+
+
         ItemStack stack = event.getEntity().getItemBySlot(EquipmentSlot.CHEST);
         if(stack.is(OpenStuff.OPEN_CHEST.get())){
             ItemMachineWrapper wrapper = SERVER.get(stack, event.getEntity());
-
-
-            wrapper.stack = stack;
-            wrapper.holder = event.getEntity();
+            wrapper.setHolder(event.getEntity());
             wrapper.connectComponents();
         }
-
     }
 
 
@@ -135,7 +129,6 @@ public class ItemMachineManager {
     public static class Cache implements Callable<ItemMachineWrapper>, RemovalListener<String, ItemMachineWrapper> {
         public final com.google.common.cache.Cache<String, ItemMachineWrapper> cache;
 
-        protected ItemStack currentStack;
         protected LivingEntity currentHolder;
 
         public Cache() {
@@ -147,37 +140,30 @@ public class ItemMachineManager {
 
         public ItemMachineWrapper get(ItemStack stack, LivingEntity holder) {
             String id = getOrCreateId(stack);
-            synchronized (cache) {
-                currentStack = stack;
-                currentHolder = holder;
+            currentHolder = holder;
 
-                ItemMachineWrapper wrapper;
-                try {
-                    wrapper = cache.get(id, this);
-                } catch (Exception ex) {
-                    throw new RuntimeException("Failed to load machine wrapper from cache", ex);
-                }
-
-                currentStack = null;
-                currentHolder = null;
-
-                return wrapper;
+            ItemMachineWrapper wrapper;
+            try {
+                wrapper = cache.get(id, this);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to load machine wrapper from cache", ex);
             }
+
+            currentHolder = null;
+
+            return wrapper;
         }
 
         @Override
         public ItemMachineWrapper call() {
-            OpenStuff.LOGGER.info("Server init !! {} {}", currentHolder, currentStack);
-            return new ItemMachineWrapper(currentStack, currentHolder);
+            OpenStuff.LOGGER.info("Server init !! {}", currentHolder);
+            return new ItemMachineWrapper(currentHolder);
         }
 
         @Override
         public void onRemoval(RemovalNotification<String, ItemMachineWrapper> notification) {
             ItemMachineWrapper state = notification.getValue();
             if (state != null && state.node() != null) {
-                if (state.autoSave && state.holder != null) {
-                    state.writeToNBT(state.holder.registryAccess());
-                }
                 if (state.machine() != null) {
                     state.machine().stop();
                     if (state.machine().node() != null && state.machine().node().network() != null) {
@@ -186,45 +172,42 @@ public class ItemMachineManager {
                         }
                     }
                 }
-                state.setChanged();
+                state.writeToNBT();
             }
         }
 
         public void clear(Level level) {
-            synchronized (cache) {
-                List<String> keysToRemove = new ArrayList<>();
-                for (Map.Entry<String, ItemMachineWrapper> entry : cache.asMap().entrySet()) {
-                    if (entry.getValue().getEnvironmentLevel() == level) {
-                        keysToRemove.add(entry.getKey());
-                    }
+
+            List<String> keysToRemove = new ArrayList<>();
+            for (Map.Entry<String, ItemMachineWrapper> entry : cache.asMap().entrySet()) {
+                if (entry.getValue().getEnvironmentLevel() == level) {
+                    keysToRemove.add(entry.getKey());
                 }
-                cache.invalidateAll(keysToRemove);
-                cache.cleanUp();
             }
+            cache.invalidateAll(keysToRemove);
+            cache.cleanUp();
         }
 
         public void cleanUp() {
-            synchronized (cache) {
-                cache.cleanUp();
-            }
+            cache.cleanUp();
+        }
+
+        public void keepAlive() {
+            ImmutableMap.copyOf(cache.getAllPresent(cache.asMap().keySet()));
         }
 
         public void save(LivingEntity holder) {
-            synchronized (cache) {
-                for (ItemMachineWrapper wrapper : cache.asMap().values()) {
-                    if (wrapper.holder == holder) {
-                        wrapper.writeToNBT(holder.registryAccess());
-                    }
+            for (ItemMachineWrapper wrapper : cache.asMap().values()) {
+                if (wrapper.getHolder() == holder) {
+                    wrapper.writeToNBT();
                 }
             }
         }
 
         public void saveAll(Level level) {
-            synchronized (cache) {
-                for (ItemMachineWrapper wrapper : cache.asMap().values()) {
-                    if (wrapper.getEnvironmentLevel() == level && wrapper.holder != null) {
-                        wrapper.writeToNBT(wrapper.holder.registryAccess());
-                    }
+            for (ItemMachineWrapper wrapper : cache.asMap().values()) {
+                if (wrapper.getEnvironmentLevel() == level && wrapper.getHolder() != null) {
+                    wrapper.writeToNBT();
                 }
             }
         }

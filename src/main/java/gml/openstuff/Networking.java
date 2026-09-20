@@ -96,11 +96,10 @@ public class Networking {
         } else {
             // ----------------------------------------------------------------------- //
             Player player = context.player();
-            ItemStack stack = payload.stack();
 
             switch (payload.state()) {
                 case REQUEST_INTERACTION -> {
-                    ItemMachineWrapper wrapper = new ItemMachineWrapper(stack, player);
+                    ItemMachineWrapper wrapper = new ItemMachineWrapper(player);
                     wrapper.interact(player.level(), player);
                 }
                 default -> {}

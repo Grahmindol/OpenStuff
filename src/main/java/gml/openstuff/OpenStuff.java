@@ -104,8 +104,6 @@ public final class OpenStuff {
         // just to be executed once
         if (event.getTabKey() != CreativeModeTabs.INGREDIENTS) return;
 
-        if (event.getTabKey() != CreativeModeTabs.INGREDIENTS) return;
-
         // --- HELMET ---
         ItemStack helmet = new ItemStack(OPEN_HELMET);
         PieceData helmetData = new PieceData(new ItemStack[] {

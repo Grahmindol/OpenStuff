@@ -15,39 +15,34 @@ import li.cil.oc.api.network.Node;
 import li.cil.oc.util.RotationHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.common.MutableDataComponentHolder;
 
 import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implements MachineHost, li.cil.oc.api.internal.Tablet {
-    public ItemStack stack;
-    public LivingEntity holder;
-
+    private ItemStack[] items;
+    private LivingEntity holder;
 
     private li.cil.oc.api.machine.Machine machine;
     public MachineData data = new MachineData();
 
-    // Server side only
     private boolean lastRunning = false;
-    public boolean autoSave = true;
 
-    public ItemMachineWrapper(ItemStack _stack, LivingEntity _holder){
-        stack = _stack;
+    public ItemMachineWrapper(LivingEntity _holder){
         holder = _holder;
+        items = Iterables.toArray(Iterables.concat(holder.getHandSlots(), holder.getArmorAndBodyArmorSlots()), ItemStack.class);
 
-        readFromNBT(holder.registryAccess());
+
+        readFromNBT();
         if (!getEnvironmentLevel().isClientSide) {
             li.cil.oc.api.Network.joinNewNetwork(machine.node());
-            writeToNBT(holder.registryAccess());
+            writeToNBT();
         } else {
             connectComponents();
 
@@ -59,9 +54,19 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
         }
     }
 
-    public void readFromNBT(HolderLookup.Provider provider) {
-        loadData(stack);
-        if (!getEnvironmentLevel().isClientSide) {
+    public LivingEntity getHolder() {
+        return holder;
+    }
+
+    public void setHolder(LivingEntity holder){
+        this.holder = holder;
+        items = Iterables.toArray(Iterables.concat(holder.getHandSlots(), holder.getArmorAndBodyArmorSlots()), ItemStack.class);
+    }
+
+    public void readFromNBT() {
+        ItemStack stack = items[getIndexForEquipment(EquipmentSlot.CHEST)];
+        data.loadData(stack, holder.registryAccess());
+        if(!holder.level().isClientSide) {
             try {
                 machine().loadData(stack);
             } catch (UnrecoverablePersistanceException e) {
@@ -70,9 +75,12 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
         }
     }
 
-    public void writeToNBT(HolderLookup.Provider provider){
-        saveData(stack);
-        if (!getEnvironmentLevel().isClientSide) {
+    public void writeToNBT(){
+        ItemStack stack = items[getIndexForEquipment(EquipmentSlot.CHEST)];
+        saveComponents();
+        data.saveData(stack, holder.registryAccess());
+
+        if(!holder.level().isClientSide) {
             machine().saveData(stack);
         }
     }
@@ -82,6 +90,7 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
 
     private EquipmentSlot getSlotForStack() {
         ItemStack chest = holder.getItemBySlot(EquipmentSlot.CHEST);
+        ItemStack stack = items[getIndexForEquipment(EquipmentSlot.CHEST)];
         if(ItemMachineManager.getOrCreateId(chest).equals(ItemMachineManager.getOrCreateId(stack))) return EquipmentSlot.CHEST;
 
         // TODO SEARCH ON THE FULL INV
@@ -90,16 +99,15 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
     }
 
     public void setChanged() {
-        saveData(stack);
+        writeToNBT();
 
         EquipmentSlot slot = getSlotForStack();
         if(slot == null){
             OpenStuff.LOGGER.warn("hum i do not knw wher my slot is...");
-            OpenStuff.LOGGER.warn(stack.toString());
-            OpenStuff.LOGGER.warn(holder.toString());
             return;
         }
 
+        ItemStack stack = items[getIndexForEquipment(EquipmentSlot.CHEST)];
         holder.setItemSlot(slot, stack.copy());
         stack = holder.getItemBySlot(slot);
     }
@@ -117,7 +125,7 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
 
     @Override
     public ItemStack[] items() {
-        return Iterables.toArray(Iterables.concat(holder.getHandSlots(), holder.getArmorAndBodyArmorSlots()), ItemStack.class);
+        return this.items; //;
     }
 
     private static int getIndexForEquipment(EquipmentSlot slot){
@@ -129,6 +137,7 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
 
     @Override
     public Iterable<ItemStack> internalComponents() {
+        ItemStack stack = items[getIndexForEquipment(EquipmentSlot.CHEST)];
         PieceData chest = new PieceData(stack);
         return chest.items.stream().toList();
     }
@@ -198,17 +207,6 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
 
     // ----------------------------------------------------------------------- //
 
-    public void  loadData(DataComponentHolder tag_holder){
-        data.loadData(tag_holder, holder.registryAccess());
-    }
-
-    public void  saveData(MutableDataComponentHolder tag_holder){
-        saveComponents();
-        data.saveData(tag_holder, holder.registryAccess());
-    }
-
-    // ----------------------------------------------------------------------- //
-
     public void update(){
         Connector connector = ((Connector)this.machine().node());
 
@@ -242,8 +240,8 @@ public class ItemMachineWrapper extends SimpleComponentItemsEnvironment implemen
             String msg = machine().lastError();
             if(msg != null) {
                 // TODO: fix translation.
-                //player.sendSystemMessage(Component.translatable("gui.Analyzer.LastError", Component.translatable(msg)));
-                player.sendSystemMessage(Component.translatable(msg));
+                player.sendSystemMessage(Component.translatable("gui.Analyzer.LastError", Component.translatable(msg)));
+                //player.sendSystemMessage(Component.translatable(msg));
             }
             setChanged();
         }

@@ -43,7 +43,7 @@ public class ArmorDriver extends DriverItem {
         public Armor(ItemStack stack, ItemMachineWrapper wrapper){
             this.stack = stack;
             this.wrapper = wrapper;
-            this.host = new ArmorHost(wrapper, wrapper.holder.getEquipmentSlotForItem(stack));
+            this.host = new ArmorHost(wrapper, wrapper.getHolder().getEquipmentSlotForItem(stack));
 
             // TODO : Make add sttings for buffer sizes.
             setNode(li.cil.oc.api.Network.newNode(this, li.cil.oc.api.network.Visibility.Network).
